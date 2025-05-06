@@ -1,0 +1,128 @@
+import { Bot } from "grammy";
+import jwt from "jsonwebtoken";
+import { logger } from "../logger";
+import { createBot, IBot } from ".";
+import { AppConfig } from "..";
+import { CustomContext } from "./context/CustomContext";
+
+export class BotManager {
+    private bot: IBot;
+    private config: AppConfig;
+    private jwtSecret?: string;
+
+    constructor(botToken: string, redisInstance: any, config: AppConfig) {
+        this.bot = createBot(botToken, redisInstance, config);
+        this.config = config;
+        
+        // Initialize authentication if enabled
+        if (config.useAuth) {
+            if (!config.jwtSecret) {
+                throw new Error("JWT_SECRET is required when useAuth is enabled");
+            }
+            this.jwtSecret = config.jwtSecret;
+            logger.info("Authentication middleware has been set up");
+        }
+    }
+
+
+    public createCommand(command: string, message: string, buttons?: Array<Array<{ text: string, callback_data: string }>>) {
+        logger.info(`Registering command /${command}`);
+
+        // Register the command in the menu
+        this.updateCommandMenu(command);
+
+        // Register the command handler
+        this.bot.command(command, async (ctx: CustomContext) => {
+            try {
+                await ctx.reply(message, {
+                    parse_mode: "HTML",
+                    reply_markup: buttons ? {
+                        inline_keyboard: buttons
+                    } : undefined
+                });
+                logger.info(`Command /${command} executed successfully`);
+            } catch (error) {
+                logger.error(`Error executing command /${command}:`, error);
+                await ctx.reply("Sorry, there was an error executing this command.");
+            }
+        });
+    }
+
+    private async updateCommandMenu(newCommand: string) {
+        try {
+            // Get existing commands
+            const existingCommands = await this.bot.api.getMyCommands();
+
+            // Add new command if it doesn't exist
+            if (!existingCommands.some(cmd => cmd.command === newCommand)) {
+                await this.bot.api.setMyCommands([
+                    ...existingCommands,
+                    {
+                        command: newCommand,
+                        description: `Execute /${newCommand} command`
+                    }
+                ]);
+            }
+        } catch (error) {
+            logger.error("Error updating command menu:", error);
+        }
+    }
+
+    public handleCallback(callbackData: string, handler: (ctx: any) => Promise<void>) {
+        this.bot.callbackQuery(callbackData, async (ctx) => {
+            await handler(ctx);
+            await ctx.answerCallbackQuery();
+        });
+    }
+
+    public handleMessage(filter: string | RegExp, handler: (ctx: any) => Promise<void>) {
+        this.bot.hears(filter, async (ctx) => {
+            try {
+                await handler(ctx);
+            } catch (error) {
+                logger.error("Error handling message:", error);
+                await ctx.reply("Sorry, there was an error processing your message.");
+            }
+        });
+    }
+
+    public async start(): Promise<void> {
+        try {
+            if (this.config.botMode === "webhook") {
+                logger.info("Starting bot in webhook mode...");
+                await this.bot.init();
+                await this.bot.api.setWebhook(this.config.botWebhookUrl as string, {
+                    allowed_updates: this.config.botAllowedUpdates as any,
+                });
+            } else if (this.config.botMode === "polling") {
+                logger.info("Starting bot in polling mode...");
+                await this.bot.start({
+                    allowed_updates: this.config.botAllowedUpdates as any,
+                    onStart: ({ username }) => {
+                        logger.info({
+                            msg: "Bot running...",
+                            username,
+                        });
+                    },
+                });
+            }
+        } catch (error) {
+            logger.error(error);
+            throw error;
+        }
+    }
+
+    public async stop(): Promise<void> {
+        try {
+            await this.bot.stop();
+            logger.info("Bot stopped successfully");
+        } catch (error) {
+            logger.error("Error stopping bot:", error);
+            throw error;
+        }
+    }
+
+    public getBot(): IBot {       
+        return this.bot;
+    }
+} 
