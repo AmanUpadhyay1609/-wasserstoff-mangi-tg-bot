@@ -1,4 +1,4 @@
-import { Bot } from "grammy";
+import { Bot, Composer, Context } from "grammy";
 import jwt from "jsonwebtoken";
 import { logger } from "../logger";
 import { createBot, IBot } from ".";
@@ -9,26 +9,36 @@ import { createAuthMiddleware } from "./middlewares/auth";
 export class BotManager {
     private bot: IBot;
     private config: AppConfig;
+    private composer: Composer<CustomContext>;
+    private registeredCommands: Array<{ command: string; description: string }> = [];
 
     constructor(botToken: string, redisInstance: any, config: AppConfig) {
         this.bot = createBot(botToken, redisInstance, config);
+        this.composer = new Composer<CustomContext>();
         this.config = config;
+        this.bot.use(this.composer);
     }
 
-    public createCommand(command: string, message: string, buttons?: Array<Array<{ text: string, callback_data: string }>>) {
+    public createCommand(
+        command: string,
+        message: string,
+        buttons?: Array<Array<{ text: string; callback_data: string }>>
+    ): void {
         logger.info(`Registering command /${command}`);
+        // Only register command once.
+        if (!this.registeredCommands.some((cmd) => cmd.command === command)) {
+            this.registeredCommands.push({
+                command: command,
+                description: `Execute /${command} command`,
+            });
+        }
 
-        // Register the command in the menu
-        this.updateCommandMenu(command);
-
-        // Register the command handler
-        this.bot.command(command, async (ctx: CustomContext) => {
+        // Add the command handler to the Composer.
+        this.composer.command(command, async (ctx: Context) => {
             try {
                 await ctx.reply(message, {
                     parse_mode: "HTML",
-                    reply_markup: buttons ? {
-                        inline_keyboard: buttons
-                    } : undefined
+                    reply_markup: buttons ? { inline_keyboard: buttons } : undefined,
                 });
                 logger.info(`Command /${command} executed successfully`);
             } catch (error) {
@@ -38,35 +48,34 @@ export class BotManager {
         });
     }
 
-    private async updateCommandMenu(newCommand: string) {
+    public async updateCommandMenu(): Promise<void> {
         try {
-            // Get existing commands
-            const existingCommands = await this.bot.api.getMyCommands();
-
-            // Add new command if it doesn't exist
-            if (!existingCommands.some(cmd => cmd.command === newCommand)) {
-                await this.bot.api.setMyCommands([
-                    ...existingCommands,
-                    {
-                        command: newCommand,
-                        description: `Execute /${newCommand} command`
-                    }
-                ]);
-            }
+            // Set all registered commands at once.
+            await this.bot.api.setMyCommands(this.registeredCommands);
         } catch (error) {
             logger.error("Error updating command menu:", error);
         }
     }
 
-    public handleCallback(callbackData: string, handler: (ctx: any) => Promise<void>) {
-        this.bot.callbackQuery(callbackData, async (ctx) => {
-            await handler(ctx);
-            await ctx.answerCallbackQuery();
+    public handleCallback(
+        filter: string | RegExp,
+        handler: (ctx: Context) => Promise<void>
+    ): void {
+        this.composer.callbackQuery(filter, async (ctx: Context) => {
+            try {
+                await handler(ctx);
+                await ctx.answerCallbackQuery();
+            } catch (error) {
+                logger.error("Error handling callback query:", error);
+                await ctx.answerCallbackQuery({
+                    text: "Error processing callback query",
+                });
+            }
         });
     }
 
     public handleMessage(filter: string | RegExp, handler: (ctx: any) => Promise<void>) {
-        this.bot.hears(filter, async (ctx) => {
+        this.composer.hears(filter, async (ctx) => {
             try {
                 await handler(ctx);
             } catch (error) {
@@ -86,18 +95,23 @@ export class BotManager {
                 });
             } else if (this.config.botMode === "polling") {
                 logger.info("Starting bot in polling mode...");
-                await this.bot.start({
-                    allowed_updates: this.config.botAllowedUpdates as any,
-                    onStart: ({ username }) => {
-                        logger.info({
-                            msg: "Bot running...",
-                            username,
+                await new Promise<void>((resolve, reject) => {
+                    this.bot
+                        .start({
+                            allowed_updates: this.config.botAllowedUpdates as any,
+                            onStart: ({ username }) => {
+                                logger.info("Bot running...", { username });
+                                resolve();
+                            },
+                        })
+                        .catch((error) => {
+                            logger.error("Error starting bot:", error);
+                            reject(error);
                         });
-                    },
                 });
             }
         } catch (error) {
-            logger.error(error);
+            logger.error("Error starting BotManager:", error);
             throw error;
         }
     }
@@ -112,24 +126,29 @@ export class BotManager {
         }
     }
 
-    public getBot(): IBot {       
+    public getBot(): Bot<Context> {
         return this.bot;
     }
 
-    public createCommandWithAuth(command: string, message: string, buttons?: Array<Array<{ text: string, callback_data: string }>>) {
+    public createCommandWithAuth(command: string, message: string, buttons?: Array<Array<{ text: string; callback_data: string }>>): void {
         if (!this.config.jwtSecret) {
             logger.error("JWT secret not configured for authentication. Cannot register auth command.");
             return;
         }
         logger.info(`Registering command with auth /${command}`);
-        this.updateCommandMenu(command);
+        if (!this.registeredCommands.some(cmd => cmd.command === command)) {
+            this.registeredCommands.push({
+                command: command,
+                description: `Execute /${command} command with authentication`,
+            });
+        }
         const authMiddleware = createAuthMiddleware(this.config.jwtSecret);
-        this.bot.command(command, async (ctx: CustomContext) => {
+        this.composer.command(command, async (ctx: CustomContext) => {
             await authMiddleware(ctx, async () => Promise.resolve());
             try {
                 await ctx.reply(message, {
                     parse_mode: "HTML",
-                    reply_markup: buttons ? { inline_keyboard: buttons } : undefined
+                    reply_markup: buttons ? { inline_keyboard: buttons } : undefined,
                 });
                 logger.info(`Auth command /${command} executed successfully`);
             } catch (error) {
@@ -139,26 +158,31 @@ export class BotManager {
         });
     }
 
-    public handleCallbackWithAuth(callbackData: string, handler: (ctx: any) => Promise<void>) {
+    public handleCallbackWithAuth(filter: string | RegExp, handler: (ctx: CustomContext) => Promise<void>): void {
         if (!this.config.jwtSecret) {
             logger.error("JWT secret not configured for authentication. Cannot register auth callback.");
             return;
         }
         const authMiddleware = createAuthMiddleware(this.config.jwtSecret);
-        this.bot.callbackQuery(callbackData, async (ctx: CustomContext) => {
+        this.composer.callbackQuery(filter, async (ctx: CustomContext) => {
             await authMiddleware(ctx, async () => Promise.resolve());
-            await handler(ctx);
-            await ctx.answerCallbackQuery();
+            try {
+                await handler(ctx);
+                await ctx.answerCallbackQuery();
+            } catch (error) {
+                logger.error("Error handling auth callback:", error);
+                await ctx.answerCallbackQuery({ text: "Error processing auth callback" });
+            }
         });
     }
 
-    public handleMessageWithAuth(filter: string | RegExp, handler: (ctx: any) => Promise<void>) {
+    public handleMessageWithAuth(filter: string | RegExp, handler: (ctx: CustomContext) => Promise<void>): void {
         if (!this.config.jwtSecret) {
             logger.error("JWT secret not configured for authentication. Cannot register auth message handler.");
             return;
         }
         const authMiddleware = createAuthMiddleware(this.config.jwtSecret);
-        this.bot.hears(filter, async (ctx: CustomContext) => {
+        this.composer.hears(filter, async (ctx: CustomContext) => {
             await authMiddleware(ctx, async () => Promise.resolve());
             try {
                 await handler(ctx);

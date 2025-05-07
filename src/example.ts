@@ -27,8 +27,6 @@ async function createAuthenticatedBot() {
   const bot = new Bot(configWithAuth);
 
   try {
-    // Get bot manager before initialization
-    await bot.initialize();
     const botManager = bot.getBotManager();
     // await bot.initialize();
 

@@ -4,7 +4,7 @@ import type { CustomContext } from "../context/CustomContext";
 
 export const createAuthMiddleware = (jwtSecret: string) => {
   return async (ctx: CustomContext, next: () => Promise<void>) => {
-    logger.info(`INSIDE AUTH+++++____>`)
+    // logger.info(`INSIDE AUTH+++++____>`)
     if (!ctx.chat || ctx.chat.type !== "private") {
       return next();
     }
