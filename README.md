@@ -42,8 +42,8 @@ const config: AppConfig = {
     botAllowedUpdates: ['message', 'callback_query'],
     redisUrl: 'redis://localhost:6379',
     isDev: true,
-    // Authentication is optional
-    useAuth: false
+    // Authentication is optional. Set useAuth to "none" to disable extra layer authentication.
+    useAuth: "none"
 };
 
 async function main() {
@@ -72,9 +72,9 @@ const configWithAuth: AppConfig = {
     botAllowedUpdates: ['message', 'callback_query'],
     redisUrl: 'redis://localhost:6379',
     isDev: true,
-    // Enable authentication
-    useAuth: true,
-    // Required when useAuth is true
+    // Enable authentication (global auth via useAuth set to "fully")
+    useAuth: "fully",
+    // Required when useAuth is "fully" or "partially"
     jwtSecret: 'your-secret-key-here'
 };
 
@@ -114,6 +114,51 @@ When authentication is enabled:
 - Tokens contain user ID and chat ID for verification
 - Tokens are automatically refreshed if invalid or expired
 - Access user token info via `ctx.session.jwtToken`
+
+### Partial Authentication Setup
+
+If you prefer to enable authentication selectively for certain routes rather than globally, you can set `useAuth` to "partially" in your configuration. In this mode, the global authentication middleware is not applied automatically, giving you the flexibility to secure only specific commands or message handlers.
+
+To secure a specific route, use the following methods provided by the SDK:
+
+- `createCommandWithAuth`: Registers a command that requires authentication before executing.
+- `handleCallbackWithAuth`: Secures a callback query handler with authentication.
+- `handleMessageWithAuth`: Registers a message handler with authentication.
+
+For example:
+
+```typescript
+// Configuration with partial authentication
+const configPartialAuth: AppConfig = {
+    mongodbUri: 'mongodb://localhost:27017/mangi-tg-bot',
+    botToken: 'YOUR_BOT_TOKEN',
+    botMode: 'polling',
+    botAllowedUpdates: ['message', 'callback_query'],
+    redisUrl: 'redis://localhost:6379',
+    isDev: true,
+    // Enable partial authentication
+    useAuth: "partially",
+    jwtSecret: 'your-secret-key-here'
+};
+
+const bot = new Bot(configPartialAuth);
+const botManager = bot.getBotManager();
+
+// Create a command with authentication
+botManager.createCommandWithAuth("secure", "This is a secure command with partial authentication.");
+
+// Create a callback with authentication
+botManager.handleCallbackWithAuth("secure_callback", async (ctx) => {
+    await ctx.reply("Authenticated callback executed.");
+});
+
+// Create a message handler with authentication
+botManager.handleMessageWithAuth("secure", async (ctx) => {
+    await ctx.reply("Authenticated message handler executed.");
+});
+```
+
+**Important:** When `useAuth` is set to "none", authentication is completely disabled. In this case, even if you call the `...WithAuth` methods, the SDK will restrict their usage by checking for a configured `jwtSecret` and logging an error. This ensures that authentication-related functionality is only available when authentication is explicitly enabled via "fully" or "partially".
 
 ### Creating Commands
 

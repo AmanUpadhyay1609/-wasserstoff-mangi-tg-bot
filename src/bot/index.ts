@@ -11,6 +11,7 @@ import { createCommanMenu } from "./helper/createMenu";
 import { errorHandler } from "./helper/errorHandler";
 import { AppConfig } from "..";
 import jwt, { JsonWebTokenError } from "jsonwebtoken";
+import { createAuthMiddleware } from "./middlewares/auth";
 
 export const createBot = (
   BOT_TOKEN: string,
@@ -67,87 +68,11 @@ export const createBot = (
     });
   }
 
-  // Add features
-  if(config.useAuth && config.jwtSecret){
-    protectedBot.use((ctx, next) => {
-      if (!ctx.chat || ctx.chat.type !== "private") {
-        return next();
-      }
-  
-      // Log that middleware is executing
-      logger.debug(
-        `Auth middleware executing for user ${ctx.from?.id} in chat ${ctx.chat.id}`
-      );
-  
-      // Ensure session is initialized
-      if (!ctx.session) {
-        ctx.session = { jwtToken: undefined };
-        logger.debug("Session was undefined, initialized empty session");
-      }
-  
-      const chatId = ctx.chat.id;
-      const userId = ctx.from?.id;
-  
-      logger.debug(
-        `Processing auth for user ${userId} in chat ${chatId}. Session:`,
-        ctx.session
-      );
-  
-      // If no JWT token in session, create one
-      if (!ctx.session.jwtToken) {
-        logger.info(
-          `No token found. Creating new JWT token for user ${userId} in chat ${chatId}`
-        );
-  
-        // Create payload with user and chat info
-        const payload = {
-          chatId: chatId,
-          userId: userId,
-          createdAt: new Date().toISOString(),
-        };
-  
-        // Sign the token
-        const token = jwt.sign(payload, config.jwtSecret!);
-        console.log(`the auth token-->`, token);
-        // Store in session
-        ctx.session = { jwtToken: token };
-  
-        // Log the token for debugging
-        logger.debug(`JWT token created: ${token.substring(0, 20)}...`);
-  
-        logger.info(`JWT token stored for user ${userId}`);
-      } else {
-        // Verify existing token
-        try {
-          logger.debug(`Verifying existing token for user ${userId}`);
-          const decoded = jwt.verify(ctx.session.jwtToken, config.jwtSecret!) as {
-            chatId: number;
-            userId: number;
-          };
-  
-          // Verify that the token belongs to this chat
-          if (decoded.chatId !== chatId) {
-            logger.warn(
-              `JWT token chatId mismatch: ${decoded.chatId} vs ${chatId}`
-            );
-            // Token is for a different chat, create a new one
-            ctx.session.jwtToken = undefined;
-            return next();
-          }
-  
-          logger.debug(`JWT token verified for user ${userId} in chat ${chatId}`);
-        } catch (error) {
-          logger.warn(`Invalid JWT token for user ${userId}:`, error);
-          // Token is invalid, create a new one
-          ctx.session.jwtToken = undefined;
-          return next();
-        }
-      }
-  
-      // Continue to next middleware
-      return next();
-    });
+  // Remove the inline auth middleware and use global auth only when config.useAuth is "fully"
+  if (config.useAuth === "fully" && config.jwtSecret) {
+    protectedBot.use(createAuthMiddleware(config.jwtSecret));
   }
+
   protectedBot.use(welcomeFeature);
   protectedBot.use(unhandledFeature);
 

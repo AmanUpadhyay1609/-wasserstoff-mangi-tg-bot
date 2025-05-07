@@ -12,7 +12,7 @@ export interface AppConfig {
   botAllowedUpdates: string[];
   redisUrl: string;
   isDev: boolean;
-  useAuth?: boolean; // New option for authentication
+  useAuth?: "fully" | "partial" | "none"; // New option for authentication
   jwtSecret?: string; // Secret for JWT signing
 }
 

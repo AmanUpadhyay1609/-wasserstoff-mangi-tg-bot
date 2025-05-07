@@ -1,7 +1,7 @@
 import { Bot, AppConfig } from "./index";
 import { logger } from "./logger";
 
-// Example configuration with authentication enabled
+// Example configuration with authentication enabled (global auth via useAuth set to "fully")
 const configWithAuth: AppConfig = {
   mongodbUri: "mongodb://localhost:27017/Bot",
   botToken: "7717043976:AAGSkIgTIdicgOhbn8h6Zsg7QTHObkp7nNw", // Replace with your actual token
@@ -9,8 +9,8 @@ const configWithAuth: AppConfig = {
   botAllowedUpdates: ["message", "callback_query"],
   redisUrl: "redis://localhost:6379",
   isDev: true,
-  useAuth: true,
-  jwtSecret: "aman1211", // Required when useAuth is true
+  useAuth: "partial",
+  jwtSecret: "aman1211", // Required when useAuth is "fully" or "partially"
 };
 const config: AppConfig = {
   mongodbUri: "mongodb://localhost:27017/Bot",
@@ -19,7 +19,7 @@ const config: AppConfig = {
   botAllowedUpdates: ["message", "callback_query"],
   redisUrl: "redis://localhost:6379",
   isDev: true,
-  useAuth: false,
+  useAuth: "none",
 };
 
 async function createAuthenticatedBot() {
@@ -28,19 +28,28 @@ async function createAuthenticatedBot() {
 
   try {
     // Get bot manager before initialization
+    await bot.initialize();
     const botManager = bot.getBotManager();
+    // await bot.initialize();
 
     // Add commands
-    botManager.createCommand(
+    botManager.createCommandWithAuth(
       "help",
       "Here are the available commands:\n/start - Start the bot\n/help - Show this help\n/debug - Show your session data"
     );
-    botManager.createCommand("start", "Welcome to the authenticated bot!");
+    botManager.createCommandWithAuth(
+      "start",
+      "Welcome to the authenticated bot!"
+    );
+    botManager.createCommandWithAuth(
+      "aman",
+      "Welcome to the authenticated bot!"
+    );
     botManager.createCommand("debug", "Debug your session data");
     // botManager.getMongoConnection();
 
     // Example of a secure handler that requires authentication
-    botManager.handleMessage("secure", async (ctx) => {
+    botManager.handleMessageWithAuth("secure", async (ctx) => {
       // The authentication middleware ensures the user is verified
       await ctx.reply("This is a secure message that requires authentication!");
 
@@ -76,10 +85,11 @@ async function createAuthenticatedBot() {
   }
 }
 async function createUnAuthenticatedBot() {
-  logger.info("Starting authenticated bot with config:", configWithAuth);
+  logger.info("Starting non-authenticated bot with config:", config);
   const bot = new Bot(config);
 
   try {
+    // Initialize the bot and services
     // Get bot manager before initialization
     const botManager = bot.getBotManager();
 
@@ -88,34 +98,24 @@ async function createUnAuthenticatedBot() {
       "help",
       "Here are the available commands:\n/start - Start the bot\n/help - Show this help\n/debug - Show your session data"
     );
-    botManager.createCommand("start", "Welcome to the not authenticated bot!");
+    botManager.createCommandWithAuth(
+      "start",
+      "Welcome to the non-authenticated bot!"
+    );
+    botManager.createCommand(
+      "aman",
+      "Welcome to the non-authenticated bot!"
+    );
     botManager.createCommand("debug", "Debug your session data");
-    // botManager.getMongoConnection();
-
-    // Example of a secure handler that requires authentication
+    // Example of a handler that could be secured
     botManager.handleMessage("secure", async (ctx) => {
-      // The authentication middleware ensures the user is verified
-      await ctx.reply("This is a secure message that requires authentication!");
-
-      // Show token info
-      if (ctx.session?.jwtToken) {
-        const decoded = JSON.stringify(
-          require("jsonwebtoken").decode(ctx.session.jwtToken),
-          null,
-          2
-        );
-        await ctx.reply(`Your token info:\n\n<pre>${decoded}</pre>`, {
-          parse_mode: "HTML",
-        });
-      } else {
-        await ctx.reply("No authentication token found in your session.");
-      }
+      await ctx.reply(
+        "This is a message handler in a bot without global authentication."
+      );
     });
-
-    // Initialize the bot and services
     await bot.initialize();
 
-    logger.info("Bot started successfully with authentication enabled");
+    logger.info("Bot started successfully without authentication");
 
     // Keep the application running
     process.on("SIGINT", async () => {
@@ -129,6 +129,6 @@ async function createUnAuthenticatedBot() {
   }
 }
 
-// Run the authenticated bot
+// Run both bots for testing purposes
 createAuthenticatedBot();
 createUnAuthenticatedBot();
