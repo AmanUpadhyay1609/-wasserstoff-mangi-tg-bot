@@ -3,6 +3,7 @@ import { logger } from "./logger";
 import { BotManager } from "./bot/BotManager";
 import { DatabaseManager } from "./database/DatabaseManager";
 import { RedisManager } from "./database/RedisManager";
+import { TelegramClient } from "telegram";
 
 export interface AppConfig {
   mongodbUri: string;
@@ -96,6 +97,13 @@ export class Bot {
     });
   }
 
+  public MangiClient(apiId: number, apiHash: string, stringSession?: string) {
+    const client = new TelegramClient(stringSession ?? "", apiId, apiHash, { connectionRetries: 5 });
+
+    return client;
+  }
+
+  
   /**
    * Cleanup and disconnect from all services
    */
