@@ -19,9 +19,10 @@ export class BotManager {
         this.bot.use(this.composer);
     }
 
-    public createCommand(
+    public handleCommand(
         command: string,
-        message: string,
+        handler: (ctx: CustomContext) => Promise<void>,
+        message?: string,
         buttons?: Array<Array<{ text: string; callback_data: string }>>
     ): void {
         logger.info(`Registering command /${command}`);
@@ -33,13 +34,15 @@ export class BotManager {
             });
         }
 
-        // Add the command handler to the Composer.
         this.composer.command(command, async (ctx: CustomContext) => {
             try {
-                await ctx.reply(message, {
-                    parse_mode: "HTML",
-                    reply_markup: buttons ? { inline_keyboard: buttons } : undefined,
-                });
+                await handler(ctx);
+                if (message) {
+                    await ctx.reply(message, {
+                        parse_mode: "HTML",
+                        reply_markup: buttons ? { inline_keyboard: buttons } : undefined,
+                    });
+                }
                 logger.info(`Command /${command} executed successfully`);
             } catch (error) {
                 logger.error(`Error executing command /${command}:`, error);
@@ -58,10 +61,11 @@ export class BotManager {
     }
 
     public handleCallback(
-        filter: string | RegExp,
+        filter: (ctx: CustomContext) => boolean,
         handler: (ctx: CustomContext) => Promise<void>
     ): void {
-        this.composer.callbackQuery(filter, async (ctx: CustomContext) => {
+        this.composer.callbackQuery(/.*/, async (ctx: CustomContext) => {
+            if (!filter(ctx)) return;
             try {
                 await handler(ctx);
                 await ctx.answerCallbackQuery();
@@ -74,8 +78,12 @@ export class BotManager {
         });
     }
 
-    public handleMessage(filter: string | RegExp, handler: (ctx: CustomContext) => Promise<void>) {
-        this.composer.hears(filter, async (ctx) => {
+    public handleMessage(
+        filter: (ctx: CustomContext) => boolean,
+        handler: (ctx: CustomContext) => Promise<void>
+    ): void {
+        this.composer.hears(/.*/, async (ctx: CustomContext) => {
+            if (!filter(ctx)) return;
             try {
                 await handler(ctx);
             } catch (error) {
@@ -130,7 +138,12 @@ export class BotManager {
         return this.bot;
     }
 
-    public createCommandWithAuth(command: string, message: string, buttons?: Array<Array<{ text: string; callback_data: string }>>): void {
+    public handleCommandWithAuth(
+        command: string,
+        handler: (ctx: CustomContext) => Promise<void>,
+        message?: string,
+        buttons?: Array<Array<{ text: string; callback_data: string }>>
+    ): void {
         if (!this.config.jwtSecret) {
             logger.error("JWT secret not configured for authentication. Cannot register auth command.");
             return;
@@ -146,10 +159,13 @@ export class BotManager {
         this.composer.command(command, async (ctx: CustomContext) => {
             await authMiddleware(ctx, async () => Promise.resolve());
             try {
-                await ctx.reply(message, {
-                    parse_mode: "HTML",
-                    reply_markup: buttons ? { inline_keyboard: buttons } : undefined,
-                });
+                await handler(ctx);
+                if (message) {
+                    await ctx.reply(message, {
+                        parse_mode: "HTML",
+                        reply_markup: buttons ? { inline_keyboard: buttons } : undefined,
+                    });
+                }
                 logger.info(`Auth command /${command} executed successfully`);
             } catch (error) {
                 logger.error(`Error executing auth command /${command}:`, error);
@@ -158,13 +174,17 @@ export class BotManager {
         });
     }
 
-    public handleCallbackWithAuth(filter: string | RegExp, handler: (ctx: CustomContext) => Promise<void>): void {
+    public handleCallbackWithAuth(
+        filter: (ctx: CustomContext) => boolean,
+        handler: (ctx: CustomContext) => Promise<void>
+    ): void {
         if (!this.config.jwtSecret) {
             logger.error("JWT secret not configured for authentication. Cannot register auth callback.");
             return;
         }
         const authMiddleware = createAuthMiddleware(this.config.jwtSecret);
-        this.composer.callbackQuery(filter, async (ctx: CustomContext) => {
+        this.composer.callbackQuery(/.*/, async (ctx: CustomContext) => {
+            if (!filter(ctx)) return;
             await authMiddleware(ctx, async () => Promise.resolve());
             try {
                 await handler(ctx);
@@ -176,13 +196,17 @@ export class BotManager {
         });
     }
 
-    public handleMessageWithAuth(filter: string | RegExp, handler: (ctx: CustomContext) => Promise<void>): void {
+    public handleMessageWithAuth(
+        filter: (ctx: CustomContext) => boolean,
+        handler: (ctx: CustomContext) => Promise<void>
+    ): void {
         if (!this.config.jwtSecret) {
             logger.error("JWT secret not configured for authentication. Cannot register auth message handler.");
             return;
         }
         const authMiddleware = createAuthMiddleware(this.config.jwtSecret);
-        this.composer.hears(filter, async (ctx: CustomContext) => {
+        this.composer.hears(/.*/, async (ctx: CustomContext) => {
+            if (!filter(ctx)) return;
             await authMiddleware(ctx, async () => Promise.resolve());
             try {
                 await handler(ctx);
