@@ -5,7 +5,7 @@ import { CustomContext } from "./bot/context/CustomContext";
 // Example configuration with authentication enabled (global auth via useAuth set to "fully")
 const configWithAuth: AppConfig = {
   mongodbUri: "mongodb://localhost:27017/Bot",
-  botToken: "7717043976:AAGSkIgTIdicgOhbn8h6Zsg7QTHObkp7nNw", // Replace with your actual token
+  botToken: "7717043976:................", // Replace with your actual token
   botMode: "polling",
   botAllowedUpdates: ["message", "callback_query"],
   redisUrl: "redis://localhost:6379",
@@ -41,7 +41,7 @@ async function createAuthenticatedBot() {
       },
       async (ctx: CustomContext) => {
           // Handler: Reply when the filter condition is met
-          await ctx.api.sendMessage(ctx.chat.id,"Hello bhai new aunthentication lag gaya....");
+          await ctx.api.sendMessage(ctx.chat.id,"Hello from aunthenticated bot....");
       }
   );
 

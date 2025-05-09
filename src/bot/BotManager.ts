@@ -38,10 +38,10 @@ export class BotManager {
             try {
                 await handler(ctx);
                 if (message) {
-                    await ctx.reply(message, {
-                        parse_mode: "HTML",
-                        reply_markup: buttons ? { inline_keyboard: buttons } : undefined,
-                    });
+                await ctx.reply(message, {
+                    parse_mode: "HTML",
+                    reply_markup: buttons ? { inline_keyboard: buttons } : undefined,
+                });
                 }
                 logger.info(`Command /${command} executed successfully`);
             } catch (error) {
@@ -161,10 +161,10 @@ export class BotManager {
             try {
                 await handler(ctx);
                 if (message) {
-                    await ctx.reply(message, {
-                        parse_mode: "HTML",
-                        reply_markup: buttons ? { inline_keyboard: buttons } : undefined,
-                    });
+                await ctx.reply(message, {
+                    parse_mode: "HTML",
+                    reply_markup: buttons ? { inline_keyboard: buttons } : undefined,
+                });
                 }
                 logger.info(`Auth command /${command} executed successfully`);
             } catch (error) {

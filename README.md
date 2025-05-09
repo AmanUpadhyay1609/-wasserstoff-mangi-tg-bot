@@ -1,19 +1,21 @@
 # @wasserstoff/mangi-tg-bot SDK
 
-A powerful and flexible Telegram Bot SDK built with TypeScript, featuring session management, command handling, database integration, and built-in authentication.
+A powerful and flexible Telegram Bot SDK built with TypeScript. This release introduces an updated BotManager API for more granular handling of commands, messages, and callback queries, as well as a new BotClient module for direct Telegram client interactions and session management.
 
 ## 🚀 Features
 
-- ✨ Easy command creation and management
-- 📱 Interactive button menus
+- 🛠️ **Updated BotManager API**
+  - **Commands:** Use `handleCommand` and `handleCommandWithAuth` to register commands with custom callback handlers.
+  - **Message Handling:** Use `handleMessage` and `handleMessageWithAuth` with a filter callback of type `(ctx: CustomContext) => boolean` for precise control over which messages to process.
+  - **Callback Queries:** Use `handleCallback` and `handleCallbackWithAuth` with a filter callback to process specific callback queries.
+- 📱 **New BotClient Module:**
+  - Provides a Telegram client API enabling developers to manage their own sessions and directly interact with Telegram.
 - 💾 Redis session management
 - 🗄️ MongoDB integration
 - 🔄 Webhook and polling support
-- 🛡️ Type-safe development
-- 🎯 Middleware support
-- 📝 Message handling
-- 🔘 Callback query handling
 - 🔐 Built-in JWT authentication
+- 🎯 Middleware support
+- 📝 Type-safe development
 
 ## 📋 Prerequisites
 
@@ -28,12 +30,15 @@ A powerful and flexible Telegram Bot SDK built with TypeScript, featuring sessio
 npm install @wasserstoff/mangi-tg-bot
 ```
 
-## 📖 Usage Examples
+## 📖 Updated Usage Examples
 
-### Basic Bot Setup
+### Basic Bot Setup with Updated BotManager
+
+The following example demonstrates how to set up a basic bot using the updated BotManager. Notice that instead of using simple strings or regex patterns for filtering messages and callbacks, you now provide a callback function that receives the full context (`ctx`).
 
 ```typescript
 import { Bot, AppConfig } from '@wasserstoff/mangi-tg-bot';
+import { CustomContext } from '@wasserstoff/mangi-tg-bot/bot/context/CustomContext';
 
 const config: AppConfig = {
     mongodbUri: 'mongodb://localhost:27017/mangi-tg-bot',
@@ -42,28 +47,54 @@ const config: AppConfig = {
     botAllowedUpdates: ['message', 'callback_query'],
     redisUrl: 'redis://localhost:6379',
     isDev: true,
-    // Authentication is optional. Set useAuth to "none" to disable extra layer authentication.
-    useAuth: "none"
+    useAuth: 'none'
 };
 
 async function main() {
-    // Create Bot instance
     const bot = new Bot(config);
     const botManager = bot.getBotManager();
 
-    // Initialize bot
+    // Register a simple command using handleCommand
+    botManager.handleCommand('start', async (ctx: CustomContext) => {
+        await ctx.reply('Welcome to the bot! 👋');
+    });
+
+    // Register a secure command (requires jwtSecret in config)
+    botManager.handleCommandWithAuth('secure', async (ctx: CustomContext) => {
+        await ctx.reply('This secure command requires authentication.');
+    });
+
+    // Handle messages: process only messages containing "hello"
+    botManager.handleMessage(
+        (ctx: CustomContext) => (ctx.message?.text || '').toLowerCase().includes('hello'),
+        async (ctx: CustomContext) => {
+            await ctx.reply('Hello! How can I assist you?');
+        }
+    );
+
+    // Handle callback queries: process only callbacks with "info" in their data
+    botManager.handleCallback(
+        (ctx: CustomContext) => (ctx.callbackQuery?.data || '').includes('info'),
+        async (ctx: CustomContext) => {
+            await ctx.reply('Callback query info processed.');
+        }
+    );
+
     await bot.initialize();
 }
 
-main();
+main().catch(console.error);
 ```
 
-### Setting Up Authentication
+### Authentication Setup Example
 
-The SDK provides built-in JWT authentication for your bot users. To enable it:
+#### Full Authentication (Automatic)
+When `useAuth` is set to "fully" in your configuration along with a valid `jwtSecret`, the SDK automatically applies authentication to all routes. In this mode, you can register commands, message handlers, and callback queries using the standard methods (`handleCommand`, `handleMessage`, and `handleCallback`); these routes will be secured automatically.
 
+**Example:**
 ```typescript
 import { Bot, AppConfig } from '@wasserstoff/mangi-tg-bot';
+import { CustomContext } from '@wasserstoff/mangi-tg-bot/bot/context/CustomContext';
 
 const configWithAuth: AppConfig = {
     mongodbUri: 'mongodb://localhost:27017/mangi-tg-bot',
@@ -72,63 +103,40 @@ const configWithAuth: AppConfig = {
     botAllowedUpdates: ['message', 'callback_query'],
     redisUrl: 'redis://localhost:6379',
     isDev: true,
-    // Enable authentication (global auth via useAuth set to "fully")
-    useAuth: "fully",
-    // Required when useAuth is "fully" or "partially"
-    jwtSecret: 'your-secret-key-here'
+    useAuth: 'fully',
+    jwtSecret: 'your-secret-key'
 };
 
-async function createAuthenticatedBot() {
+async function createFullyAuthenticatedBot() {
     const bot = new Bot(configWithAuth);
     const botManager = bot.getBotManager();
-    
-    // Add commands
-    botManager.createCommand("start", "Welcome to the authenticated bot!");
-    
-    // Example of a secure handler that requires authentication
-    botManager.handleMessage("secure", async (ctx) => {
-        // The authentication middleware ensures the user is verified
-        await ctx.reply("This is a secure message that requires authentication!");
-        
-        // Show token info
-        if (ctx.session?.jwtToken) {
-            const decoded = JSON.stringify(
-                require('jsonwebtoken').decode(ctx.session.jwtToken),
-                null, 2
-            );
-            await ctx.reply(`Your token info:\n\n<pre>${decoded}</pre>`, {
-                parse_mode: "HTML"
-            });
-        }
+
+    // Standard methods automatically secured with authentication
+    botManager.handleCommand('start', async (ctx: CustomContext) => {
+        await ctx.reply('Welcome to the fully authenticated bot!');
     });
-    
-    // Initialize the bot
+
+    botManager.handleMessage(
+        (ctx: CustomContext) => (ctx.message?.text || '').toLowerCase().includes('secure'),
+        async (ctx: CustomContext) => {
+            await ctx.reply('This message handler is secured via full authentication!');
+        }
+    );
+
     await bot.initialize();
 }
 
-createAuthenticatedBot();
+createFullyAuthenticatedBot().catch(console.error);
 ```
 
-When authentication is enabled:
-- Each user gets a unique JWT token stored in their session
-- Tokens contain user ID and chat ID for verification
-- Tokens are automatically refreshed if invalid or expired
-- Access user token info via `ctx.session.jwtToken`
+#### Partial Authentication (Selective)
+If you prefer to apply authentication only to specific routes rather than across the entire bot, set `useAuth` to "partially" and use the specialized methods (`handleCommandWithAuth`, `handleMessageWithAuth`, and `handleCallbackWithAuth`) to secure only selected routes.
 
-### Partial Authentication Setup
-
-If you prefer to enable authentication selectively for certain routes rather than globally, you can set `useAuth` to "partially" in your configuration. In this mode, the global authentication middleware is not applied automatically, giving you the flexibility to secure only specific commands or message handlers.
-
-To secure a specific route, use the following methods provided by the SDK:
-
-- `createCommandWithAuth`: Registers a command that requires authentication before executing.
-- `handleCallbackWithAuth`: Secures a callback query handler with authentication.
-- `handleMessageWithAuth`: Registers a message handler with authentication.
-
-For example:
-
+**Example:**
 ```typescript
-// Configuration with partial authentication
+import { Bot, AppConfig } from '@wasserstoff/mangi-tg-bot';
+import { CustomContext } from '@wasserstoff/mangi-tg-bot/bot/context/CustomContext';
+
 const configPartialAuth: AppConfig = {
     mongodbUri: 'mongodb://localhost:27017/mangi-tg-bot',
     botToken: 'YOUR_BOT_TOKEN',
@@ -136,121 +144,75 @@ const configPartialAuth: AppConfig = {
     botAllowedUpdates: ['message', 'callback_query'],
     redisUrl: 'redis://localhost:6379',
     isDev: true,
-    // Enable partial authentication
-    useAuth: "partially",
-    jwtSecret: 'your-secret-key-here'
+    useAuth: 'partially',
+    jwtSecret: 'your-secret-key'
 };
 
-const bot = new Bot(configPartialAuth);
-const botManager = bot.getBotManager();
+async function createPartiallyAuthenticatedBot() {
+    const bot = new Bot(configPartialAuth);
+    const botManager = bot.getBotManager();
 
-// Create a command with authentication
-botManager.createCommandWithAuth("secure", "This is a secure command with partial authentication.");
+    // Use specialized methods to secure selected routes
+    botManager.handleCommandWithAuth('secure', async (ctx: CustomContext) => {
+        await ctx.reply('This secure command requires authentication.');
+    });
 
-// Create a callback with authentication
-botManager.handleCallbackWithAuth("secure_callback", async (ctx) => {
-    await ctx.reply("Authenticated callback executed.");
-});
+    botManager.handleMessageWithAuth(
+        (ctx: CustomContext) => (ctx.message?.text || '').toLowerCase().includes('secure'),
+        async (ctx: CustomContext) => {
+            await ctx.reply('This message handler is selectively secured!');
+        }
+    );
 
-// Create a message handler with authentication
-botManager.handleMessageWithAuth("secure", async (ctx) => {
-    await ctx.reply("Authenticated message handler executed.");
-});
+    await bot.initialize();
+}
+
+createPartiallyAuthenticatedBot().catch(console.error);
 ```
 
-**Important:** When `useAuth` is set to "none", authentication is completely disabled. In this case, even if you call the `...WithAuth` methods, the SDK will restrict their usage by checking for a configured `jwtSecret` and logging an error. This ensures that authentication-related functionality is only available when authentication is explicitly enabled via "fully" or "partially".
+### Telegram Client API with BotClient
 
-### Creating Commands
-
-```typescript
-// Simple command
-botManager.createCommand("start", "Welcome to the bot! 👋");
-
-// Command with buttons
-botManager.createCommand(
-    "menu",
-    "Main Menu - Select an option:",
-    [
-        [{ text: "📊 Statistics", callback_data: "stats" }],
-        [{ text: "⚙️ Settings", callback_data: "settings" }]
-    ]
-);
-```
-
-### Handling Callbacks
+The new `BotClient` module lets you interact directly with the Telegram client API. This is ideal for developers who want to manage their own sessions or need lower-level access to Telegram.
 
 ```typescript
-// Handle button clicks
-botManager.handleCallback("stats", async (ctx) => {
-    await ctx.reply("📊 Your Statistics:\n" +
-        "- Total Messages: 150\n" +
-        "- Active Days: 7\n" +
-        "- Rank: Advanced User");
-});
+import { BotClient } from '@wasserstoff/mangi-tg-bot';
 
-botManager.handleCallback("settings", async (ctx) => {
-    await ctx.reply("⚙️ Settings Menu:", {
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: "🔔 Notifications", callback_data: "notif" }],
-                [{ text: "🌍 Language", callback_data: "lang" }]
-            ]
+async function clientDemo() {
+    // Initialize the Telegram Client with your bot token and custom session configuration
+    const client = new BotClient({
+        botToken: 'YOUR_BOT_TOKEN',
+        sessionConfig: {
+            // Your custom session configuration here
         }
     });
-});
-```
 
-### Message Handling
+    // Connect the client to Telegram
+    await client.connect();
 
-```typescript
-// Handle specific text
-botManager.handleMessage("hello", async (ctx) => {
-    await ctx.reply(`Hello ${ctx.from.first_name}! 👋`);
-});
+    // Example: Send a message directly using the Telegram client API
+    await client.sendMessage('CHAT_ID', 'Hello from BotClient!');
 
-// Handle regex patterns
-botManager.handleMessage(/^price [0-9]+$/, async (ctx) => {
-    const price = ctx.message.text.split(" ")[1];
-    await ctx.reply(`Price set to: $${price}`);
-});
+    // Listen for incoming messages (if supported)
+    client.on('message', (msg) => {
+        console.log('Received message:', msg);
+    });
+}
 
-// Handle media
-botManager.bot.on("message:photo", async (ctx) => {
-    await ctx.reply("Thanks for the photo! 📸");
-});
-```
-
-### Working with Databases
-
-```typescript
-// Store user data in MongoDB
-await botManager.storeUserData(userId, {
-    name: "John Doe",
-    preferences: { theme: "dark" }
-});
-
-// Retrieve user data
-const userData = await botManager.getUserData(userId);
-
-// Store temporary data in Redis (with optional expiry)
-await botManager.setTempData("user:status:" + userId, "active", 3600); // expires in 1 hour
-
-// Get temporary data
-const status = await botManager.getTempData("user:status:" + userId);
+clientDemo().catch(console.error);
 ```
 
 ## 🏗️ Project Structure
 
 ```
 ├── bot/
-│ ├── features/ # Bot features and command handlers
-│ ├── middlewares/ # Custom middlewares
-│ ├── helper/ # Helper functions
-│ ├── context/ # Custom context definitions
-│ └── BotManager.ts # Main bot management class
-├── database/ # Database connections
-├── config.ts # Configuration management
-└── index.ts # Main entry point
+│   ├── features/           # Bot features and command handlers
+│   ├── middlewares/        # Custom middlewares
+│   ├── context/            # Custom context definitions
+│   ├── BotManager.ts       # Main bot management class (updated API)
+│   └── BotClient.ts        # New Telegram Client API for managing sessions
+├── database/               # Database connections
+├── config.ts               # Configuration management
+└── index.ts                # Main entry point
 ```
 
 ## 🔧 Environment Variables

@@ -27,7 +27,11 @@ export class Bot {
     this.config = config;
     this.redisManager = RedisManager.getInstance();
     this.databaseManager = DatabaseManager.getInstance();
-    this.botManager = new BotManager(config.botToken, this.redisManager.getClient(), config);
+    this.botManager = new BotManager(
+      config.botToken,
+      this.redisManager.getClient(),
+      config
+    );
   }
 
   /**
@@ -98,12 +102,13 @@ export class Bot {
   }
 
   public MangiClient(apiId: number, apiHash: string, stringSession?: string) {
-    const client = new TelegramClient(stringSession ?? "", apiId, apiHash, { connectionRetries: 5 });
+    const client = new TelegramClient(stringSession ?? "", apiId, apiHash, {
+      connectionRetries: 5,
+    });
 
     return client;
   }
 
-  
   /**
    * Cleanup and disconnect from all services
    */
@@ -130,6 +135,7 @@ export class Bot {
 export { BotManager } from "./bot/BotManager";
 export { DatabaseManager } from "./database/DatabaseManager";
 export { RedisManager } from "./database/RedisManager";
+export { TelegramManager } from "./bot/BotClient";
 
 // // // Start the application if this file is run directly
 // if (require.main === module) {
@@ -148,4 +154,3 @@ export { RedisManager } from "./database/RedisManager";
 //     process.exit(1);
 //   });
 // }
-
