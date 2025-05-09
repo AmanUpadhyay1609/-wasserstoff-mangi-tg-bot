@@ -34,7 +34,7 @@ export class BotManager {
         }
 
         // Add the command handler to the Composer.
-        this.composer.command(command, async (ctx: Context) => {
+        this.composer.command(command, async (ctx: CustomContext) => {
             try {
                 await ctx.reply(message, {
                     parse_mode: "HTML",
@@ -59,9 +59,9 @@ export class BotManager {
 
     public handleCallback(
         filter: string | RegExp,
-        handler: (ctx: Context) => Promise<void>
+        handler: (ctx: CustomContext) => Promise<void>
     ): void {
-        this.composer.callbackQuery(filter, async (ctx: Context) => {
+        this.composer.callbackQuery(filter, async (ctx: CustomContext) => {
             try {
                 await handler(ctx);
                 await ctx.answerCallbackQuery();
@@ -74,7 +74,7 @@ export class BotManager {
         });
     }
 
-    public handleMessage(filter: string | RegExp, handler: (ctx: any) => Promise<void>) {
+    public handleMessage(filter: string | RegExp, handler: (ctx: CustomContext) => Promise<void>) {
         this.composer.hears(filter, async (ctx) => {
             try {
                 await handler(ctx);
@@ -126,7 +126,7 @@ export class BotManager {
         }
     }
 
-    public getBot(): Bot<Context> {
+    public getBot(): Bot<CustomContext> {
         return this.bot;
     }
 
