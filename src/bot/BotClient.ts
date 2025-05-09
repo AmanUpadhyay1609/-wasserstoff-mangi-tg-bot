@@ -16,16 +16,19 @@ export class TelegramManager {
     }
 
     public async start(phone: string): Promise<void> {
-        console.log("Connecting to Telegram...");
-        await this.client.start({
-            phoneNumber: phone,
-            phoneCode: async () => {
-                console.log("💬 Waiting for the code...");
-                return await input.text("Please enter the code you received: ");
-            },
-            onError: (err) => console.error(err),
-        });
-        console.log("You are now connected!");
+        // If we already have a session, just connect; otherwise, start a new login
+        if (this.stringSession.save() === "") {
+            await this.client.start({
+                phoneNumber: phone,
+                phoneCode: async () => {
+                    console.log("💬 Waiting for the code...");
+                    return await input.text("Please enter the code you received: ");
+                },
+                onError: (err) => console.error(err),
+            });
+        } else {
+            await this.client.connect();
+        }
     }
 
     public async createGroup(users: string[], title: string): Promise<void> {
