@@ -17,7 +17,6 @@ export class TelegramManager {
 
     public async start(phone: string): Promise<void> {
         // If we already have a session, just connect; otherwise, start a new login
-        if (this.stringSession.save() === "") {
             await this.client.start({
                 phoneNumber: phone,
                 phoneCode: async () => {
@@ -26,9 +25,11 @@ export class TelegramManager {
                 },
                 onError: (err) => console.error(err),
             });
-        } else {
-            await this.client.connect();
-        }
+        
+    }
+
+    public async connect(){
+        return await this.client.connect();
     }
 
     public async createGroup(users: string[], title: string): Promise<void> {
