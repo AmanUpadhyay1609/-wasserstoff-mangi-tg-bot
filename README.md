@@ -175,27 +175,26 @@ createPartiallyAuthenticatedBot().catch(console.error);
 The new `BotClient` module lets you interact directly with the Telegram client API. This is ideal for developers who want to manage their own sessions or need lower-level access to Telegram.
 
 ```typescript
-import { BotClient } from '@wasserstoff/mangi-tg-bot';
+import { TelegramManager } from '@wasserstoff/mangi-tg-bot';
 
 async function clientDemo() {
-    // Initialize the Telegram Client with your bot token and custom session configuration
-    const client = new BotClient({
-        botToken: 'YOUR_BOT_TOKEN',
-        sessionConfig: {
-            // Your custom session configuration here
-        }
-    });
 
-    // Connect the client to Telegram
+    export const apiId = 203; // Replace with your actual API ID.
+    export const apiHash = "248e85787b42c...."; // Replace with your actual API Hash.
+
+    // Initialize the Telegram Client with your bot token and custom session configuration
+    const client = new TelegramManager(apiId, apiHash, sessionData);
+
+    // Connect the client to Telegram with session
     await client.connect();
 
-    // Example: Send a message directly using the Telegram client API
-    await client.sendMessage('CHAT_ID', 'Hello from BotClient!');
+    // Login without session 
+    await client.start("+91 88-----")
 
-    // Listen for incoming messages (if supported)
-    client.on('message', (msg) => {
-        console.log('Received message:', msg);
-    });
+    await client.createGroup(["username1", "username2"], "My New Group");
+    
+    await client.createChannel("My New Channel", "This channel is created programmatically using GramJS");
+    
 }
 
 clientDemo().catch(console.error);

@@ -1,16 +1,15 @@
 import { TelegramManager } from "../bot/BotClient";
 
-// Use your API credentials here
 
-const apiId = 12;
-const apiHash = "";
+export const apiId = 20316022; 
+export const apiHash = "248e85787b42cd6d342ec0f725b38ebb";
 
-// Optionally, load session data from file or use an empty session string.
 const sessionData = "";
 
 async function main() {
     const telegramManager = new TelegramManager(apiId, apiHash, sessionData);
 
+    // telegramManager.connect();
     await telegramManager.start("+91 887xxxxx");
 
     // Uncomment any of these operations as needed.
