@@ -5,6 +5,7 @@ import { createContextConstructor } from "./context/CustomContext";
 import { logger } from "../logger";
 import { welcomeFeature } from "./features/welcome";
 import { initial } from "./middlewares/session";
+import sessionMiddleware from "./middlewares/session";
 import { unhandledFeature } from "./features/unhandled";
 import { updateLogger } from "./middlewares/updateLogger";
 import { createCommanMenu } from "./helper/createMenu";
@@ -51,10 +52,46 @@ export const createBot = (
         }
         const sessionKey = `bot:${ctx.me.username}:session:${ctx.chat.id}`;
         logger.debug(`Generated session key: ${sessionKey}`);
+        // Store the session key on the context for our middleware
+        (ctx as any).__sessionKey = sessionKey;
         return sessionKey;
       },
     })
   );
+
+  // Add middleware to expose the storage adapter on the context
+  protectedBot.use(async (ctx, next) => {
+    (ctx as any).__storageAdapter = storage;
+    
+    // Patch the session with a forced save method that directly uses the storage adapter
+    if (ctx.session) {
+      const origSession = ctx.session;
+      const sessionKey = (ctx as any).__sessionKey;
+      
+      // Create a shadow save method that ensures data is written to Redis
+      if (sessionKey) {
+        (ctx.session as any).forceFlush = async () => {
+          logger.debug(`Force flushing session to Redis with key ${sessionKey}`);
+          return storage.write(sessionKey, origSession);
+        };
+      }
+    }
+    
+    await next();
+    
+    // Automatically save session after request is complete
+    if (ctx.session && (ctx as any).__sessionKey) {
+      try {
+        await storage.write((ctx as any).__sessionKey, ctx.session);
+        logger.debug(`Session auto-saved after request with key ${(ctx as any).__sessionKey}`);
+      } catch (err) {
+        logger.error('Error auto-saving session:', err);
+      }
+    }
+  });
+
+  // Add our custom session middleware to extend the session with custom properties
+  protectedBot.use(sessionMiddleware);
 
   // Add sequentialize middleware
   protectedBot.use(sequentialize());
