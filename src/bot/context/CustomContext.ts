@@ -1,4 +1,3 @@
-
 import { Api, Context, SessionFlavor } from "grammy";
 import { Update, UserFromGetMe } from "@grammyjs/types";
 import { SessionData } from "../middlewares/session";
@@ -8,8 +7,8 @@ type ExtendedContextFlavor = {
 };
 
 export type CustomContext = Context &
-  SessionFlavor<SessionData> &
-  ExtendedContextFlavor;
+  SessionFlavor<SessionData & { save?: (callback: (err?: any) => void) => void }>
+  & ExtendedContextFlavor;
 
 export const createContextConstructor = ({ logger }: { logger: Logger }) => {
   return class extends Context implements ExtendedContextFlavor {

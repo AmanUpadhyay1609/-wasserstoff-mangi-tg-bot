@@ -1,10 +1,12 @@
 export type SessionData = {
   jwtToken?: string; // Add JWT token to session data
+  custom?:{}
 };
 
 export const initial = (): SessionData => {
   return {
     jwtToken: undefined,
+    custom : {},
   };
 };
 

@@ -110,9 +110,6 @@ export const createBot = (
     protectedBot.use(createAuthMiddleware(config.jwtSecret));
   }
 
-  // protectedBot.use(welcomeFeature);
-  // protectedBot.use(unhandledFeature);
-
   return bot;
 };
 

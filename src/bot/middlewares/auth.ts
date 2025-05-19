@@ -3,7 +3,7 @@ import { logger } from "../../logger";
 import type { CustomContext } from "../context/CustomContext";
 
 export const createAuthMiddleware = (jwtSecret: string) => {
-  return async (ctx: any, next: () => Promise<void>) => {
+  return async (ctx: CustomContext, next: () => Promise<void>) => {
     // logger.info(`INSIDE AUTH+++++____>`)
     if (!ctx.chat || ctx.chat.type !== "private") {
       return next();
@@ -15,10 +15,10 @@ export const createAuthMiddleware = (jwtSecret: string) => {
     }
 
     // Set default properties on the session using type assertions to avoid type errors
-    (ctx.session as any).custom = (ctx.session as any).custom || {};
-    (ctx.session as any).updateCustom = function(updates: any) {
-      this.custom = { ...this.custom, ...updates };
-    };
+    ctx.session.custom = ctx.session.custom || {};
+    // ctx.session.updateCustom = function(updates: any) {
+    //   this.custom = { ...this.custom, ...updates };
+    // };
 
     // Unconditionally override the save method with our auto-save implementation
     (ctx.session as any).save = function(callback: (err?: any) => void) {
@@ -40,7 +40,7 @@ export const createAuthMiddleware = (jwtSecret: string) => {
       } else {
         // Alternative: Try to access Redis directly if available
         const redis = (ctx as any).redis;
-        const key = sessionKey || ctx.session?.sessionKey || `session:${ctx.chat?.id}`;
+        const key = sessionKey || `session:${ctx.chat?.id}`;
         
         if (redis && typeof redis.set === 'function' && key) {
           redis.set(key, JSON.stringify(ctx.session), (err: any) => {
