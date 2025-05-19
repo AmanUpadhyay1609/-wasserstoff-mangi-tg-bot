@@ -110,6 +110,21 @@ export const createBot = (
     protectedBot.use(createAuthMiddleware(config.jwtSecret));
   }
 
+  // Ensure session is always initialized and sessionKey is set for every update
+  protectedBot.use(async (ctx, next) => {
+    if (!ctx.session) ctx.session = {};
+    if (!ctx.session.custom) ctx.session.custom = {};
+    // Ensure sessionKey is set for all updates
+    if (!ctx.__sessionKey && ctx.chat?.id && ctx.me?.username) {
+      ctx.__sessionKey = `bot:${ctx.me.username}:session:${ctx.chat.id}`;
+    }
+    await next();
+    // Always save session after every update
+    if (ctx.session && ctx.__sessionKey && (ctx as any).__storageAdapter) {
+      await (ctx as any).__storageAdapter.write(ctx.__sessionKey, ctx.session);
+    }
+  });
+
   return bot;
 };
 

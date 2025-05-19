@@ -34,43 +34,40 @@ async function createAuthenticatedBot() {
     // Add commands
     // botManager.getMongoConnection();
     botManager.handleCommandWithAuth("start", async (ctx: CustomContext) => {
-      console.log(`inside setvar ctx--->`, ctx.session);
-      if (ctx.session) {
-        console.log(`inside ctx.session seeting foo = bar`);
-        ctx.session.custom = { ...ctx.session.custom, foo: "bar" };
-        if (typeof ctx.session.save === "function") {
-          ctx.session.save(() => {});
-        }
-        await ctx.api.sendMessage(
-          ctx.chat.id,
-          "Session custom variable 'foo' set to 'bar'."
-        );
-      } else {
-        await ctx.api.sendMessage(
-          ctx.chat.id,
-          "Session update capability not available."
-        );
+      // Set a variable
+      ctx.session.setCustom && ctx.session.setCustom("foo", "bar");
+      // Get a variable
+      const foo = ctx.session.getCustom ? ctx.session.getCustom("foo") : undefined;
+      // Update multiple variables
+      ctx.session.updateCustom && ctx.session.updateCustom({ hello: "world", count: 1 });
+      // Delete a variable
+      ctx.session.deleteCustom && ctx.session.deleteCustom("count");
+      // Save session if available
+      if (typeof ctx.session.save === "function") {
+        ctx.session.save(() => {});
       }
+      await ctx.api.sendMessage(
+        ctx.chat.id,
+        `Session custom variable 'foo' set to '${foo}'. Updated and deleted 'count'.`
+      );
     });
     botManager.handleCommand("setvar", async (ctx: CustomContext) => {
-      console.log(`inside setvar ctx--->`, ctx.session);
-      if (ctx.session) {
-        console.log(`inside ctx.session seeting foo = bar`);
-        ctx.session.custom = { ...ctx.session.custom, foo: "bar" };
-        if (typeof ctx.session.save === "function") {
-          ctx.session.save(() => {});
-        }
-        console.log(`console.log---->`, ctx.session.custom);
-        await ctx.api.sendMessage(
-          ctx.chat.id,
-          "Session custom variable 'foo' set to 'bar'."
-        );
-      } else {
-        await ctx.api.sendMessage(
-          ctx.chat.id,
-          "Session update capability not available."
-        );
+      // Set a variable
+      ctx.session.setCustom && ctx.session.setCustom("bar", "baz");
+      // Get a variable
+      const bar = ctx.session.getCustom ? ctx.session.getCustom("bar") : undefined;
+      // Update multiple variables
+      ctx.session.updateCustom && ctx.session.updateCustom({ test: 123, active: true });
+      // Delete a variable
+      ctx.session.deleteCustom && ctx.session.deleteCustom("test");
+      // Save session if available
+      if (typeof ctx.session.save === "function") {
+        ctx.session.save(() => {});
       }
+      await ctx.api.sendMessage(
+        ctx.chat.id,
+        `Session custom variable 'bar' set to '${bar}'. Updated and deleted 'test'.`
+      );
     });
     botManager.handleCommand("start2", async (ctx: CustomContext) => {
       // Handler: Reply when the filter condition is met

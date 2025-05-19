@@ -20,23 +20,38 @@ export default async function sessionMiddleware(ctx: any, next: () => Promise<vo
   if (!ctx.session.custom) {
     ctx.session.custom = {};
   }
-  ctx.session.updateCustom = function(updates: any) {
+
+  // CRUD helpers for session.custom
+  ctx.session.setCustom = function(key: string, value: any) {
+    this.custom[key] = value;
+  };
+  ctx.session.getCustom = function(key: string) {
+    return this.custom[key];
+  };
+  ctx.session.updateCustom = function(updates: Record<string, any>) {
     this.custom = { ...this.custom, ...updates };
   };
-  
+  ctx.session.deleteCustom = function(key: string) {
+    delete this.custom[key];
+  };
+
   if (typeof ctx.session.save !== 'function') {
     ctx.session.save = function(callback: (err?: any) => void) {
-      if (ctx.redis && typeof ctx.redis.set === 'function' && ctx.session.sessionKey) {
-        ctx.redis.set(ctx.session.sessionKey, JSON.stringify(ctx.session), (err: any) => {
-          if (err) {
-            console.error('Error saving session to Redis:', err);
-          } else {
-            console.log('Session successfully saved to Redis.');
-          }
-          callback(err);
-        });
+      const storage = ctx.__storageAdapter;
+      const sessionKey = ctx.__sessionKey;
+      if (storage && typeof storage.write === 'function' && sessionKey) {
+        storage.write(sessionKey, ctx.session)
+          .then(() => {
+            console.log('Session successfully saved to Redis via adapter');
+            callback();
+          })
+          .catch((err: any) => {
+            console.error('Error saving session via adapter:', err);
+            callback(err);
+          });
       } else {
-        console.log('Session auto-save triggered:', ctx.session);
+        // Fallback: just log
+        console.log('Session auto-save triggered (no Redis available):', ctx.session);
         callback();
       }
     };

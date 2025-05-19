@@ -7,8 +7,15 @@ type ExtendedContextFlavor = {
 };
 
 export type CustomContext = Context &
-  SessionFlavor<SessionData & { save?: (callback: (err?: any) => void) => void }>
-  & ExtendedContextFlavor;
+  SessionFlavor<SessionData & {
+    save?: (callback: (err?: any) => void) => void;
+    setCustom?: (key: string, value: any) => void;
+    getCustom?: (key: string) => any;
+    updateCustom?: (updates: Record<string, any>) => void;
+    deleteCustom?: (key: string) => void;
+  }> &
+  { __sessionKey?: string } &
+  ExtendedContextFlavor;
 
 export const createContextConstructor = ({ logger }: { logger: Logger }) => {
   return class extends Context implements ExtendedContextFlavor {
