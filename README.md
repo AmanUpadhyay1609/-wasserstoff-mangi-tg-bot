@@ -11,7 +11,6 @@ A powerful and flexible Telegram Bot SDK built with TypeScript. This release int
 - 📱 **New BotClient Module:**
   - Provides a Telegram client API enabling developers to manage their own sessions and directly interact with Telegram.
 - 💾 Redis session management
-- 🗄️ MongoDB integration
 - 🔄 Webhook and polling support
 - 🔐 Built-in JWT authentication
 - 🎯 Middleware support
@@ -20,7 +19,6 @@ A powerful and flexible Telegram Bot SDK built with TypeScript. This release int
 ## 📋 Prerequisites
 
 - Node.js (v14 or higher)
-- MongoDB
 - Redis
 - Telegram Bot Token (from [@BotFather](https://t.me/BotFather))
 
@@ -30,18 +28,15 @@ A powerful and flexible Telegram Bot SDK built with TypeScript. This release int
 npm install @wasserstoff/mangi-tg-bot
 ```
 
-## 📖 Updated Usage Examples
+## 📖 Usage Examples
 
 ### Basic Bot Setup with Updated BotManager
-
-The following example demonstrates how to set up a basic bot using the updated BotManager. Notice that instead of using simple strings or regex patterns for filtering messages and callbacks, you now provide a callback function that receives the full context (`ctx`).
 
 ```typescript
 import { Bot, AppConfig } from '@wasserstoff/mangi-tg-bot';
 import { CustomContext } from '@wasserstoff/mangi-tg-bot/bot/context/CustomContext';
 
 const config: AppConfig = {
-    mongodbUri: 'mongodb://localhost:27017/mangi-tg-bot',
     botToken: 'YOUR_BOT_TOKEN',
     botMode: 'polling',
     botAllowedUpdates: ['message', 'callback_query'],
@@ -97,7 +92,6 @@ import { Bot, AppConfig } from '@wasserstoff/mangi-tg-bot';
 import { CustomContext } from '@wasserstoff/mangi-tg-bot/bot/context/CustomContext';
 
 const configWithAuth: AppConfig = {
-    mongodbUri: 'mongodb://localhost:27017/mangi-tg-bot',
     botToken: 'YOUR_BOT_TOKEN',
     botMode: 'polling',
     botAllowedUpdates: ['message', 'callback_query'],
@@ -138,7 +132,6 @@ import { Bot, AppConfig } from '@wasserstoff/mangi-tg-bot';
 import { CustomContext } from '@wasserstoff/mangi-tg-bot/bot/context/CustomContext';
 
 const configPartialAuth: AppConfig = {
-    mongodbUri: 'mongodb://localhost:27017/mangi-tg-bot',
     botToken: 'YOUR_BOT_TOKEN',
     botMode: 'polling',
     botAllowedUpdates: ['message', 'callback_query'],
@@ -170,35 +163,41 @@ async function createPartiallyAuthenticatedBot() {
 createPartiallyAuthenticatedBot().catch(console.error);
 ```
 
-### Telegram Client API with BotClient
+---
 
-The new `BotClient` module lets you interact directly with the Telegram client API. This is ideal for developers who want to manage their own sessions or need lower-level access to Telegram.
+## 🗃️ Session Management (CRUD Helpers)
+
+The SDK provides easy CRUD helpers for managing session variables in `ctx.session.custom`.
+
+### **Session CRUD API**
+
+- `ctx.session.setCustom(key, value)` — Set a variable in `session.custom`
+- `ctx.session.getCustom(key)` — Get a variable from `session.custom`
+- `ctx.session.updateCustom({ ... })` — Update multiple variables in `session.custom`
+- `ctx.session.deleteCustom(key)` — Delete a variable from `session.custom`
+- `ctx.session.save(callback)` — Persist the session to Redis immediately (optional, usually auto-saved)
+
+#### **Example Usage in a Command Handler**
 
 ```typescript
-import { TelegramManager } from '@wasserstoff/mangi-tg-bot';
-
-async function clientDemo() {
-
-    export const apiId = 203; // Replace with your actual API ID.
-    export const apiHash = "248e85787b42c...."; // Replace with your actual API Hash.
-
-    // Initialize the Telegram Client with your bot token and custom session configuration
-    const client = new TelegramManager(apiId, apiHash, sessionData);
-
-    // Connect the client to Telegram with session
-    await client.connect();
-
-    // Login without session 
-    await client.start("+91 88-----")
-
-    await client.createGroup(["username1", "username2"], "My New Group");
-    
-    await client.createChannel("My New Channel", "This channel is created programmatically using GramJS");
-    
-}
-
-clientDemo().catch(console.error);
+botManager.handleCommand('setvar', async (ctx: CustomContext) => {
+  // Set a variable
+  ctx.session.setCustom('foo', 'bar');
+  // Get a variable
+  const foo = ctx.session.getCustom('foo');
+  // Update multiple variables
+  ctx.session.updateCustom({ hello: 'world', count: 1 });
+  // Delete a variable
+  ctx.session.deleteCustom('count');
+  // Save session if available (optional)
+  if (typeof ctx.session.save === 'function') {
+    ctx.session.save(() => {});
+  }
+  await ctx.reply(`Session custom variable 'foo' set to '${foo}'. Updated and deleted 'count'.`);
+});
 ```
+
+---
 
 ## 🏗️ Project Structure
 
@@ -209,7 +208,7 @@ clientDemo().catch(console.error);
 │   ├── context/            # Custom context definitions
 │   ├── BotManager.ts       # Main bot management class (updated API)
 │   └── BotClient.ts        # New Telegram Client API for managing sessions
-├── database/               # Database connections
+├── database/               # Database connections (only Redis required)
 ├── config.ts               # Configuration management
 └── index.ts                # Main entry point
 ```
@@ -227,9 +226,8 @@ BOT_USERNAME=your_bot_username
 BOT_MODE=polling
 BOT_ALLOWED_UPDATES=["message","callback_query"]
 
-# Database Configuration
+# Redis Configuration
 REDIS_URL=redis://localhost:6379
-MONGO_URL=mongodb://localhost:27017/tg-bot
 
 # Authentication Configuration
 USE_AUTH=true

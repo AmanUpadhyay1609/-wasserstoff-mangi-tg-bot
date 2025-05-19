@@ -4,8 +4,7 @@ import { CustomContext } from "./bot/context/CustomContext";
 
 // Example configuration with authentication enabled (global auth via useAuth set to "fully")
 const configWithAuth: AppConfig = {
-  mongodbUri: "mongodb://localhost:27017/Bot",
-  botToken: "7717043976:AAGSkIgTIdicgOhbn8h6Zsg7QTHObkp7nNw", // Replace with your actual token
+  botToken: "7717043976:...............", // Replace with your actual token
   botMode: "polling",
   botAllowedUpdates: ["message", "callback_query"],
   redisUrl: "redis://localhost:6379",
@@ -14,7 +13,6 @@ const configWithAuth: AppConfig = {
   jwtSecret: "aman1211", // Required when useAuth is "fully" or "partially"
 };
 const config: AppConfig = {
-  mongodbUri: "mongodb://localhost:27017/Bot",
   botToken: "8088569298:............", // Replace with your actual token
   botMode: "polling",
   botAllowedUpdates: ["message", "callback_query"],
