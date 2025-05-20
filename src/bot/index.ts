@@ -13,6 +13,7 @@ import { errorHandler } from "./helper/errorHandler";
 import { AppConfig } from "..";
 import jwt, { JsonWebTokenError } from "jsonwebtoken";
 import { createAuthMiddleware } from "./middlewares/auth";
+import adminAuthMiddleware, { adminAuthCallbackHandler } from "./middlewares/adminAuth";
 
 export const createBot = (
   BOT_TOKEN: string,
@@ -26,6 +27,12 @@ export const createBot = (
     },
   });
   createCommanMenu(bot);
+
+  // Inject config into ctx for all updates
+  bot.use(async (ctx, next) => {
+    ctx.config = config;
+    await next();
+  });
 
   // Create Redis storage adapter
   const storage = new RedisAdapter({
@@ -124,6 +131,18 @@ export const createBot = (
       await (ctx as any).__storageAdapter.write(ctx.__sessionKey, ctx.session);
     }
   });
+
+  // Add middleware to expose the raw Redis client on the context for adminAuth
+  protectedBot.use(async (ctx, next) => {
+    (ctx as any).__rawRedis = redisInstance;
+    await next();
+  });
+
+  // Register admin authentication middleware and callback handler if enabled (AFTER session/redis middlewares)
+  if (config.adminAuthentication && config.adminChatIds && config.adminChatIds.length > 0) {
+    protectedBot.use(adminAuthCallbackHandler); // Handle approval/deny callbacks first
+    protectedBot.use(adminAuthMiddleware);      // Then check user status for all updates
+  }
 
   return bot;
 };

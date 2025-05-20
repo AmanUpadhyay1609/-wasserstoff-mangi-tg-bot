@@ -1,20 +1,19 @@
 # @wasserstoff/mangi-tg-bot SDK
 
-A powerful and flexible Telegram Bot SDK built with TypeScript. This release introduces an updated BotManager API for more granular handling of commands, messages, and callback queries, as well as a new BotClient module for direct Telegram client interactions and session management.
+A powerful, flexible, and modern Telegram Bot SDK built with TypeScript. This SDK provides:
+- **JWT authentication** (fully or partially enforced)
+- **Admin approval/authentication** (for public or semi-public bots)
+- **Full session management** (CRUD helpers for custom variables)
+- **Easy integration with Redis for session and approval state**
+- **Modern, type-safe API and middleware support**
 
 ## 🚀 Features
 
-- 🛠️ **Updated BotManager API**
-  - **Commands:** Use `handleCommand` and `handleCommandWithAuth` to register commands with custom callback handlers.
-  - **Message Handling:** Use `handleMessage` and `handleMessageWithAuth` with a filter callback of type `(ctx: CustomContext) => boolean` for precise control over which messages to process.
-  - **Callback Queries:** Use `handleCallback` and `handleCallbackWithAuth` with a filter callback to process specific callback queries.
-- 📱 **New BotClient Module:**
-  - Provides a Telegram client API enabling developers to manage their own sessions and directly interact with Telegram.
-- 💾 Redis session management
-- 🔄 Webhook and polling support
-- 🔐 Built-in JWT authentication
-- 🎯 Middleware support
-- 📝 Type-safe development
+- 🛡️ **JWT Authentication**: Secure your bot with JWT tokens. Enforce authentication on all routes (`fully`) or only on selected routes (`partially`).
+- 👥 **Admin Approval Layer**: Add an extra layer of admin approval for new users. Great for public or semi-public bots, clubs, or organizations.
+- 🗃️ **Session CRUD Helpers**: Easily manage custom session variables for each user, with built-in helpers for set/get/update/delete.
+- 💾 **Redis-backed Session & Approval**: All session and approval state is stored in Redis for performance and reliability.
+- 📝 **Type-safe, Modern API**: Built with TypeScript, with clear types and extensibility.
 
 ## 📋 Prerequisites
 
@@ -194,6 +193,48 @@ botManager.handleCommand('setvar', async (ctx: CustomContext) => {
     ctx.session.save(() => {});
   }
   await ctx.reply(`Session custom variable 'foo' set to '${foo}'. Updated and deleted 'count'.`);
+});
+```
+
+---
+
+## 👥 Admin Authentication/Approval
+
+Add an extra layer of admin approval for new users. This is ideal for public or semi-public bots, clubs, or organizations where you want to control who can use the bot.
+
+- **New users** are set to `pending` in Redis and cannot use the bot until approved.
+- **Admins** receive approval requests and can approve/deny users via inline buttons.
+- **Only approved users** (status `member` or `admin`) can interact with the bot.
+
+### How it works
+1. When a new user interacts with the bot, their status is set to `pending` in Redis.
+2. All admins (specified in `adminChatIds`) receive a message with Approve/Deny buttons.
+3. When an admin approves, the user's status is set to `member` and they are notified.
+4. Only users with status `member` or `admin` can use the bot; others are blocked until approved.
+
+### Example: Admin Approval
+```typescript
+const configWithAdminAuth: AppConfig = {
+  botToken: 'YOUR_BOT_TOKEN',
+  botMode: 'polling',
+  botAllowedUpdates: ['message', 'callback_query'],
+  redisUrl: 'redis://localhost:6379',
+  isDev: true,
+  useAuth: 'none',
+  adminAuthentication: true,
+  adminChatIds: [123456789, 987654321], // Replace with your admin Telegram chat IDs
+};
+
+const bot = new Bot(configWithAdminAuth);
+const botManager = bot.getBotManager();
+botManager.handleCommand('start', async (ctx: CustomContext) => {
+  await ctx.reply('Welcome! If you see this, you are approved by an admin.');
+});
+botManager.handleCommand('whoami', async (ctx: CustomContext) => {
+  await ctx.reply(`Your chat ID: <code>${ctx.from?.id}</code>`, { parse_mode: 'HTML' });
+});
+botManager.handleCommand('secret', async (ctx: CustomContext) => {
+  await ctx.reply('This is a secret command only for approved users!');
 });
 ```
 

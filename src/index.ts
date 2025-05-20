@@ -13,6 +13,9 @@ export interface AppConfig {
   isDev: boolean;
   useAuth?: "fully" | "partial" | "none";
   jwtSecret?: string;
+  // Admin authentication (optional)
+  adminAuthentication?: boolean;
+  adminChatIds?: number[];
 }
 
 export class Bot {

@@ -15,6 +15,7 @@ export type CustomContext = Context &
     deleteCustom?: (key: string) => void;
   }> &
   { __sessionKey?: string } &
+  { config?: any } &
   ExtendedContextFlavor;
 
 export const createContextConstructor = ({ logger }: { logger: Logger }) => {
