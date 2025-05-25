@@ -1,6 +1,4 @@
-import { Bot, AppConfig } from "./index";
-import { logger } from "./logger";
-import { CustomContext } from "./bot/context/CustomContext";
+import { Bot, AppConfig, CustomContext, logger } from "./index";
 
 // ---
 // 1. JWT Authentication Example
@@ -12,7 +10,7 @@ const configWithJwtAuth: AppConfig = {
   redisUrl: "redis://localhost:6379",
   isDev: true,
   useAuth: "fully", // All routes require JWT authentication
-  jwtSecret: "your_jwt_secret_here"
+  jwtSecret: "your_jwt_secret_here",
 };
 
 async function createJwtAuthBot() {
@@ -22,10 +20,17 @@ async function createJwtAuthBot() {
   await bot.initialize();
 
   botManager.handleCommand("start", async (ctx: CustomContext) => {
-    await ctx.api.sendMessage(ctx.chat.id, "Welcome! You are authenticated with JWT.");
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      "Welcome! You are authenticated with JWT."
+    );
   });
   botManager.handleCommand("whoami", async (ctx: CustomContext) => {
-    await ctx.api.sendMessage(ctx.chat.id, `Your chat ID: <code>${ctx.from?.id}</code>`, { parse_mode: "HTML" });
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      `Your chat ID: <code>${ctx.from?.id}</code>`,
+      { parse_mode: "HTML" }
+    );
   });
 }
 
@@ -50,13 +55,23 @@ async function createAdminAuthBot() {
   await bot.initialize();
 
   botManager.handleCommand("start", async (ctx: CustomContext) => {
-    await ctx.api.sendMessage(ctx.chat.id, "Welcome! If you see this, you are approved by an admin.");
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      "Welcome! If you see this, you are approved by an admin."
+    );
   });
   botManager.handleCommand("whoami", async (ctx: CustomContext) => {
-    await ctx.api.sendMessage(ctx.chat.id, `Your chat ID: <code>${ctx.from?.id}</code>`, { parse_mode: "HTML" });
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      `Your chat ID: <code>${ctx.from?.id}</code>`,
+      { parse_mode: "HTML" }
+    );
   });
   botManager.handleCommand("secret", async (ctx: CustomContext) => {
-    await ctx.api.sendMessage(ctx.chat.id, "This is a secret command only for approved users!");
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      "This is a secret command only for approved users!"
+    );
   });
 }
 
@@ -69,7 +84,7 @@ const configWithSessionCrud: AppConfig = {
   botAllowedUpdates: ["message", "callback_query"],
   redisUrl: "redis://localhost:6379",
   isDev: true,
-  useAuth: "none"
+  useAuth: "none",
 };
 
 async function createSessionCrudBot() {
@@ -80,8 +95,11 @@ async function createSessionCrudBot() {
 
   botManager.handleCommand("setvar", async (ctx: CustomContext) => {
     ctx.session.setCustom && ctx.session.setCustom("foo", "bar");
-    const foo = ctx.session.getCustom ? ctx.session.getCustom("foo") : undefined;
-    ctx.session.updateCustom && ctx.session.updateCustom({ hello: "world", count: 1 });
+    const foo = ctx.session.getCustom
+      ? ctx.session.getCustom("foo")
+      : undefined;
+    ctx.session.updateCustom &&
+      ctx.session.updateCustom({ hello: "world", count: 1 });
     ctx.session.deleteCustom && ctx.session.deleteCustom("count");
     if (typeof ctx.session.save === "function") {
       ctx.session.save(() => {});
@@ -92,7 +110,9 @@ async function createSessionCrudBot() {
     );
   });
   botManager.handleCommand("getvar", async (ctx: CustomContext) => {
-    const foo = ctx.session.getCustom ? ctx.session.getCustom("foo") : undefined;
+    const foo = ctx.session.getCustom
+      ? ctx.session.getCustom("foo")
+      : undefined;
     await ctx.api.sendMessage(ctx.chat.id, `Current value of 'foo': ${foo}`);
   });
 }
@@ -113,21 +133,30 @@ const configCombined: AppConfig = {
 };
 
 async function createCombinedBot() {
-  logger.info("Starting combined bot with JWT, admin auth, and session CRUD:", configCombined);
+  logger.info(
+    "Starting combined bot with JWT, admin auth, and session CRUD:",
+    configCombined
+  );
   const bot = new Bot(configCombined);
   const botManager = bot.getBotManager();
   await bot.initialize();
 
   // Only accessible if JWT is valid AND user is approved by admin
   botManager.handleCommand("start", async (ctx: CustomContext) => {
-    await ctx.api.sendMessage(ctx.chat.id, "Welcome! You are authenticated and approved by an admin.");
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      "Welcome! You are authenticated and approved by an admin."
+    );
   });
 
   // Session CRUD helpers
   botManager.handleCommand("setvar", async (ctx: CustomContext) => {
     ctx.session.setCustom && ctx.session.setCustom("foo", "bar");
-    const foo = ctx.session.getCustom ? ctx.session.getCustom("foo") : undefined;
-    ctx.session.updateCustom && ctx.session.updateCustom({ hello: "world", count: 1 });
+    const foo = ctx.session.getCustom
+      ? ctx.session.getCustom("foo")
+      : undefined;
+    ctx.session.updateCustom &&
+      ctx.session.updateCustom({ hello: "world", count: 1 });
     ctx.session.deleteCustom && ctx.session.deleteCustom("count");
     if (typeof ctx.session.save === "function") {
       ctx.session.save(() => {});
@@ -138,18 +167,27 @@ async function createCombinedBot() {
     );
   });
   botManager.handleCommand("getvar", async (ctx: CustomContext) => {
-    const foo = ctx.session.getCustom ? ctx.session.getCustom("foo") : undefined;
+    const foo = ctx.session.getCustom
+      ? ctx.session.getCustom("foo")
+      : undefined;
     await ctx.api.sendMessage(ctx.chat.id, `Current value of 'foo': ${foo}`);
   });
 
   // Show user their chat ID (useful for admin setup)
   botManager.handleCommand("whoami", async (ctx: CustomContext) => {
-    await ctx.api.sendMessage(ctx.chat.id, `Your chat ID: <code>${ctx.from?.id}</code>`, { parse_mode: "HTML" });
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      `Your chat ID: <code>${ctx.from?.id}</code>`,
+      { parse_mode: "HTML" }
+    );
   });
 
   // Example: Only approved users with valid JWT can access this command
   botManager.handleCommand("secret", async (ctx: CustomContext) => {
-    await ctx.api.sendMessage(ctx.chat.id, "This is a secret command only for authenticated and approved users!");
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      "This is a secret command only for authenticated and approved users!"
+    );
   });
 }
 

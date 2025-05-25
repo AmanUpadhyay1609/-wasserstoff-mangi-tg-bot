@@ -3,6 +3,7 @@ import { logger } from "./logger";
 import { BotManager } from "./bot/BotManager";
 import { RedisManager } from "./database/RedisManager";
 import { TelegramClient } from "telegram";
+import { CustomContext } from "./bot/context/CustomContext";
 
 export interface AppConfig {
   botToken: string;
@@ -11,12 +12,16 @@ export interface AppConfig {
   botAllowedUpdates: string[];
   redisUrl: string;
   isDev: boolean;
+  // JWT authentication (optional)
   useAuth?: "fully" | "partial" | "none";
   jwtSecret?: string;
   // Admin authentication (optional)
   adminAuthentication?: boolean;
   adminChatIds?: number[];
 }
+
+export { CustomContext };
+export { logger };
 
 export class Bot {
   private botManager: BotManager;
