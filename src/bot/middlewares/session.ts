@@ -3,10 +3,19 @@ export type SessionData = {
   custom?:{}
 };
 
-export const initial = (): SessionData => {
+export const initial = (): SessionData & {
+  setCustom: (key: string, value: any) => void;
+  getCustom: (key: string) => any;
+  updateCustom: (updates: Record<string, any>) => void;
+  deleteCustom: (key: string) => void;
+} => {
   return {
     jwtToken: undefined,
-    custom : {},
+    custom: {},
+    setCustom: () => {},
+    getCustom: () => undefined,
+    updateCustom: () => {},
+    deleteCustom: () => {},
   };
 };
 
@@ -42,23 +51,29 @@ export default async function sessionMiddleware(ctx: any, next: () => Promise<vo
       if (storage && typeof storage.write === 'function' && sessionKey) {
         storage.write(sessionKey, ctx.session)
           .then(() => {
-            console.log('Session successfully saved to Redis via adapter');
             callback();
           })
           .catch((err: any) => {
-            console.error('Error saving session via adapter:', err);
             callback(err);
           });
       } else {
         // Fallback: just log
-        console.log('Session auto-save triggered (no Redis available):', ctx.session);
         callback();
       }
     };
   }
   
   await next();
-  
-  console.log('Session custom data after processing:', ctx.session.custom);
 }
+
+// Helper middleware to ensure ctx.session, ctx.chat, and ctx.from are always present
+import { Middleware } from "grammy";
+import { CustomContext } from "../context/CustomContext";
+
+export const requireSessionAndChat: Middleware<CustomContext> = async (ctx, next) => {
+  if (!ctx.session) throw new Error("Session is not initialized!");
+  if (!ctx.chat) throw new Error("Chat is not available!");
+  if (!ctx.from) throw new Error("From is not available!");
+  await next();
+};
   

@@ -20,9 +20,6 @@ export interface AppConfig {
   adminChatIds?: number[];
 }
 
-export { CustomContext };
-export { logger };
-
 export class Bot {
   private botManager: BotManager;
   private redisManager: RedisManager;
@@ -110,25 +107,8 @@ export class Bot {
   }
 }
 
-// Remove DatabaseManager export
-// export { DatabaseManager } from "./database/DatabaseManager";
 export { RedisManager } from "./database/RedisManager";
 export { TelegramManager } from "./bot/BotClient";
+export { CustomContext };
+export { logger };
 
-// // // Start the application if this file is run directly
-// if (require.main === module) {
-//   const app = new Bot({
-//     mongodbUri: config.MONGO_URL,
-//     botToken: config.BOT_TOKEN,
-//     botMode: config.BOT_MODE,
-//     botWebhookUrl: config.BOT_WEBHOOK_URL,
-//     redisUrl: config.REDIS_URL,
-//     isDev: true,
-//     botAllowedUpdates: config.BOT_ALLOWED_UPDATES as string[]
-//   });
-
-//   app.initialize().catch((error) => {
-//     logger.error("Fatal error:", error);
-//     process.exit(1);
-//   });
-// }

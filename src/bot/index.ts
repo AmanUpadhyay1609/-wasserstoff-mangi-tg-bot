@@ -5,7 +5,7 @@ import { createContextConstructor } from "./context/CustomContext";
 import { logger } from "../logger";
 import { welcomeFeature } from "./features/welcome";
 import { initial } from "./middlewares/session";
-import sessionMiddleware from "./middlewares/session";
+import sessionMiddleware, { requireSessionAndChat } from "./middlewares/session";
 import { unhandledFeature } from "./features/unhandled";
 import { updateLogger } from "./middlewares/updateLogger";
 import { createCommanMenu } from "./helper/createMenu";
@@ -49,7 +49,14 @@ export const createBot = (
   // Configure session middleware with proper typing
   protectedBot.use(
     session({
-      initial: () => ({ jwtToken: undefined }),
+      initial: () => ({
+        jwtToken: undefined,
+        custom: {},
+        setCustom: () => {},
+        getCustom: () => undefined,
+        updateCustom: () => {},
+        deleteCustom: () => {},
+      }),
       storage,
       getSessionKey(ctx) {
         // Ensure we have a valid chat ID
@@ -100,6 +107,9 @@ export const createBot = (
   // Add our custom session middleware to extend the session with custom properties
   protectedBot.use(sessionMiddleware);
 
+  // Ensure ctx.session, ctx.chat, and ctx.from are always present for all handlers
+  protectedBot.use(requireSessionAndChat);
+
   // Add sequentialize middleware
   protectedBot.use(sequentialize());
 
@@ -119,7 +129,14 @@ export const createBot = (
 
   // Ensure session is always initialized and sessionKey is set for every update
   protectedBot.use(async (ctx, next) => {
-    if (!ctx.session) ctx.session = {};
+    if (!ctx.session) ctx.session = {
+      jwtToken: undefined,
+      custom: {},
+      setCustom: () => {},
+      getCustom: () => undefined,
+      updateCustom: () => {},
+      deleteCustom: () => {},
+    };
     if (!ctx.session.custom) ctx.session.custom = {};
     // Ensure sessionKey is set for all updates
     if (!ctx.__sessionKey && ctx.chat?.id && ctx.me?.username) {

@@ -27,20 +27,12 @@ function getBotUsername(ctx: CustomContext): string {
 }
 
 const adminAuthMiddleware: Middleware<CustomContext> = async (ctx, next) => {
-  console.log(`inside adminAuthMiddleware`);
   const config = ctx.config || (ctx as any).config;
   const adminAuthEnabled = config?.adminAuthentication;
   const adminChatIds = config?.adminChatIds || [];
   const botUsername = getBotUsername(ctx);
   const redis = (ctx as any).__rawRedis;
-  console.log('adminAuthEnabled:', adminAuthEnabled);
-  console.log('redis:', redis ? 'present' : 'missing', 'type:', typeof redis);
-  console.log('botUsername:', botUsername);
-  console.log('adminChatIds:', adminChatIds);
   if (!adminAuthEnabled || !redis || !botUsername || adminChatIds.length === 0) {
-    console.log('Skipping adminAuthMiddleware due to missing config:', {
-      adminAuthEnabled, redis: !!redis, botUsername, adminChatIdsLength: adminChatIds.length
-    });
     return next();
   }
 
@@ -50,7 +42,6 @@ const adminAuthMiddleware: Middleware<CustomContext> = async (ctx, next) => {
   }
 
   const userId = ctx.from?.id;
-  console.log(`request from user ${userId}`);
   if (!userId) return next();
   const statusKey = getUserStatusKey(botUsername);
 
@@ -89,7 +80,6 @@ const adminAuthMiddleware: Middleware<CustomContext> = async (ctx, next) => {
 
 // Handler for approval/deny callback queries
 export const adminAuthCallbackHandler: Middleware<CustomContext> = async (ctx, next) => {
-  console.log(`Inside adminAuthCallbackHandler..........`);
   if (!ctx.callbackQuery?.data?.startsWith("adminauth:")) return next();
   const redis = (ctx as any).__rawRedis;
   const botUsername = getBotUsername(ctx);

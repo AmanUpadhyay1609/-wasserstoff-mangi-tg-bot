@@ -8,9 +8,6 @@ const composer = new Composer<CustomContext>();
 const feature = composer.chatType("private");
 
 feature.command("start", logHandle("command-start"), async (ctx) => {
-  console.log("User hit /start");
-  console.log(`telegram context-->`, ctx.chat?.id, `session-->`, JSON.stringify(ctx.session));
-  
   // Log session data for debugging
   logger.info(`Session data for user ${ctx.from?.id}: ${JSON.stringify(ctx.session)}`);
   

@@ -240,6 +240,23 @@ botManager.handleCommand('secret', async (ctx: CustomContext) => {
 
 ---
 
+## 🛡️ Automatic Context Safety (No More !)
+
+The SDK now ensures that `ctx.session`, `ctx.chat`, and `ctx.from` are always present in your handlers. You can safely use `ctx.session.whatever`, `ctx.chat.id`, etc., **without** needing to write `ctx.session!` or add type guards.
+
+This is handled automatically by the SDK's internal middleware and does **not** require any code changes for existing users.
+
+**Example:**
+```typescript
+botManager.handleCommand('start', async (ctx: CustomContext) => {
+  // No need for ctx.session! or ctx.chat!
+  ctx.session.setCustom('foo', 'bar');
+  await ctx.api.sendMessage(ctx.chat.id, 'Welcome!');
+});
+```
+
+---
+
 ## 🏗️ Project Structure
 
 ```

@@ -1,6 +1,56 @@
-/src
-/dist
-/node_modules
+# Ignore source files
+src/
+tests/
+__tests__/
+test/
+*.test.ts
+*.spec.ts
+
+# Ignore TypeScript config
+tsconfig.json
+tsconfig.*.json
+
+# Ignore environment and config files
 .env
-.git
-.vscode
+.env.*
+
+# Ignore build tools and configs
+webpack.config.js
+rollup.config.js
+vite.config.js
+babel.config.js
+jest.config.js
+
+# Ignore node_modules just in case
+node_modules/
+
+# Ignore logs and system files
+*.log
+.DS_Store
+Thumbs.db
+
+# Ignore editor/project config
+.vscode/
+.idea/
+*.swp
+
+# Ignore lint and format configs
+.eslintrc
+.eslintrc.*
+.prettierrc
+.prettierrc.*
+.stylelintrc
+.stylelintrc.*
+
+# Ignore coverage
+coverage/
+
+# Ignore build artifacts (optional: include only if you don’t want to publish compiled files)
+dist/
+build/
+out/
+
+# Ignore package manager lock files (optional: include if using only yarn/npm/pnpm locally)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

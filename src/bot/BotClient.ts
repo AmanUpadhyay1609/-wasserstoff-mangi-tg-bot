@@ -24,7 +24,6 @@ export class TelegramManager {
         return await this.client.start({
             phoneNumber: phone,
             phoneCode: async () => {
-                console.log("💬 Waiting for the code...");
                 return await input.text("Please enter the code you received: ");
             },
             onError: (err) => console.error(err),
@@ -52,7 +51,6 @@ export class TelegramManager {
 
     public async createChannel(title: string, about: string): Promise<any> {
         try {
-            console.log("Creating channel...");
             const result = await this.client.invoke(
                 new Api.channels.CreateChannel({
                     broadcast: true, // true creates a channel; false creates a megagroup

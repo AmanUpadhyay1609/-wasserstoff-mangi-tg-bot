@@ -10,10 +10,8 @@ const feature = composer.chatType("private");
 feature.on("message", logHandle("unhandled-message"), async (ctx) => {
   ctx.api.sendChatAction(ctx.chat.id, "typing");
   if (ctx.message.reply_to_message) {
-    console.log("inside the reply with reply");
     await handleMessageWithReply(ctx);
   } else {
-    console.log("inside the reply without reply");
     await handleMessageWithoutReply(ctx);
   }
 });
@@ -21,7 +19,6 @@ feature.on("message", logHandle("unhandled-message"), async (ctx) => {
 feature
   .filter((ctx) => ctx.callbackQuery?.data === "say_hi")
   .on("callback_query", async (ctx) => {
-    console.log("inside the callback say hi");
     ctx.api.sendMessage(ctx.chat.id, `hi ${ctx.from?.first_name}`);
   });
 
