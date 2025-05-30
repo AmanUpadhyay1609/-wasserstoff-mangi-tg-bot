@@ -51,12 +51,11 @@ export class BotManager {
         });
     }
 
-    public async updateCommandMenu(): Promise<void> {
+    public async setMyCommands(commands: Array<{ command: string; description: string }>): Promise<void> {
         try {
-            // Set all registered commands at once.
-            await this.bot.api.setMyCommands(this.registeredCommands);
+            await this.bot.api.setMyCommands(commands);
         } catch (error) {
-            logger.error("Error updating command menu:", error);
+            logger.error("Error setting command menu:", error);
         }
     }
 

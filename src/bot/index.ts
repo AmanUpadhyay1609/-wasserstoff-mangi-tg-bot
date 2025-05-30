@@ -8,7 +8,6 @@ import { initial } from "./middlewares/session";
 import sessionMiddleware, { requireSessionAndChat } from "./middlewares/session";
 import { unhandledFeature } from "./features/unhandled";
 import { updateLogger } from "./middlewares/updateLogger";
-import { createCommanMenu } from "./helper/createMenu";
 import { errorHandler } from "./helper/errorHandler";
 import { AppConfig } from "..";
 import jwt, { JsonWebTokenError } from "jsonwebtoken";
@@ -26,7 +25,6 @@ export const createBot = (
       canUseWebhookReply: (method) => method === "sendMessage",
     },
   });
-  createCommanMenu(bot);
 
   // Inject config into ctx for all updates
   bot.use(async (ctx, next) => {
@@ -160,6 +158,8 @@ export const createBot = (
     protectedBot.use(adminAuthCallbackHandler); // Handle approval/deny callbacks first
     protectedBot.use(adminAuthMiddleware);      // Then check user status for all updates
   }
+
+  // To set the bot command menu, use BotManager.setMyCommands(commands) after bot initialization.
 
   return bot;
 };

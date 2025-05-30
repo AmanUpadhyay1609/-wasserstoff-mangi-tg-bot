@@ -133,6 +133,12 @@ async function createCombinedBot() {
   const botManager = bot.getBotManager();
   await bot.initialize();
 
+
+  botManager.setMyCommands([
+    { command: "start", description: "Start the bot" },
+    { command: "whoami", description: "Get your chat ID" },
+    { command: "setvar", description: "Secret command" },
+  ]);
   // Only accessible if JWT is valid AND user is approved by admin
   botManager.handleCommand("start", async (ctx: CustomContext) => {
     await ctx.api.sendMessage(
