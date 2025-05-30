@@ -98,9 +98,6 @@ async function createSessionCrudBot() {
     const foo = ctx.session.getCustom("foo");
     ctx.session.updateCustom({ hello: "world", count: 1 });
     ctx.session.deleteCustom("count");
-    if (typeof ctx.session.save === "function") {
-      ctx.session.save(() => {});
-    }
     await ctx.api.sendMessage(
       ctx.chat.id,
       `Session custom variable 'foo' set to '${foo}'. Updated and deleted 'count'.`
@@ -116,7 +113,7 @@ async function createSessionCrudBot() {
 // 4. Combined Example: JWT Auth + Admin Auth + Session CRUD
 // ---
 const configCombined: AppConfig = {
-  botToken: "7717043976:AAGSkIgTIdicgOhbn8h6Zsg7QTHObkp7nNw", // Replace with your actual token
+  botToken: "8088569298:..........................", // Replace with your actual token
   botMode: "polling",
   botAllowedUpdates: ["message", "callback_query"],
   redisUrl: "redis://localhost:6379",
@@ -124,7 +121,7 @@ const configCombined: AppConfig = {
   useAuth: "fully", // JWT auth required for all routes
   jwtSecret: "aman1211",
   adminAuthentication: true, // Enable admin approval system
-  adminChatIds: [6469050225], // Replace with your admin Telegram chat IDs
+  adminChatIds: [2110210162], // Replace with your admin Telegram chat IDs
 };
 
 async function createCombinedBot() {
@@ -150,9 +147,6 @@ async function createCombinedBot() {
     const foo = ctx.session.getCustom("foo");
     ctx.session.updateCustom({ hello: "world", count: 1 });
     ctx.session.deleteCustom("count");
-    if (typeof ctx.session.save === "function") {
-      ctx.session.save(() => {});
-    }
     await ctx.api.sendMessage(
       ctx.chat.id,
       `Session custom variable 'foo' set to '${foo}'. Updated and deleted 'count'.`

@@ -33,15 +33,24 @@ export default async function sessionMiddleware(ctx: any, next: () => Promise<vo
   // CRUD helpers for session.custom
   ctx.session.setCustom = function(key: string, value: any) {
     this.custom[key] = value;
+    if (typeof this.save === 'function') {
+      this.save(() => {});
+    }
   };
   ctx.session.getCustom = function(key: string) {
     return this.custom[key];
   };
   ctx.session.updateCustom = function(updates: Record<string, any>) {
     this.custom = { ...this.custom, ...updates };
+    if (typeof this.save === 'function') {
+      this.save(() => {});
+    }
   };
   ctx.session.deleteCustom = function(key: string) {
     delete this.custom[key];
+    if (typeof this.save === 'function') {
+      this.save(() => {});
+    }
   };
 
   if (typeof ctx.session.save !== 'function') {
