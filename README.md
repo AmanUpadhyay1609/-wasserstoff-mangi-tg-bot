@@ -6,6 +6,7 @@ A powerful, flexible, and modern Telegram Bot SDK built with TypeScript. This SD
 - **Full session management** (CRUD helpers for custom variables)
 - **Easy integration with Redis for session and approval state**
 - **Modern, type-safe API and middleware support**
+- **Professional Logging System** (development and production-ready)
 
 ## 🚀 Features
 
@@ -14,6 +15,13 @@ A powerful, flexible, and modern Telegram Bot SDK built with TypeScript. This SD
 - 🗃️ **Session CRUD Helpers**: Easily manage custom session variables for each user, with built-in helpers for set/get/update/delete.
 - 💾 **Redis-backed Session & Approval**: All session and approval state is stored in Redis for performance and reliability.
 - 📝 **Type-safe, Modern API**: Built with TypeScript, with clear types and extensibility.
+- 📝 **Professional Logging System**:
+  - Colorized, detailed logs in development
+  - Optimized, minimal logs in production
+  - Automatic context logging
+  - Multiple log levels (debug, info, warn, error)
+  - Timestamp and request tracking
+  - Built with Pino for performance
 
 ## 📋 Prerequisites
 
@@ -29,137 +37,211 @@ npm install @wasserstoff/mangi-tg-bot
 
 ## 📖 Usage Examples
 
-### Basic Bot Setup with Updated BotManager
+### 1. Basic Bot with JWT Authentication
 
 ```typescript
-import { Bot, AppConfig } from '@wasserstoff/mangi-tg-bot';
-import { CustomContext } from '@wasserstoff/mangi-tg-bot/bot/context/CustomContext';
+import { Bot, AppConfig, CustomContext, logger } from '@wasserstoff/mangi-tg-bot';
 
-const config: AppConfig = {
-    botToken: 'YOUR_BOT_TOKEN',
-    botMode: 'polling',
-    botAllowedUpdates: ['message', 'callback_query'],
-    redisUrl: 'redis://localhost:6379',
-    isDev: true,
-    useAuth: 'none'
+const configWithJwtAuth: AppConfig = {
+  botToken: 'YOUR_BOT_TOKEN',
+  botMode: 'polling',
+  botAllowedUpdates: ['message', 'callback_query'],
+  redisUrl: 'redis://localhost:6379',
+  isDev: true,
+  useAuth: 'fully', // All routes require JWT authentication
+  jwtSecret: 'your_jwt_secret_here',
 };
 
-async function main() {
-    const bot = new Bot(config);
-    const botManager = bot.getBotManager();
+async function createJwtAuthBot() {
+  logger.info('Starting bot with JWT authentication:', configWithJwtAuth);
+  const bot = new Bot(configWithJwtAuth);
+  const botManager = bot.getBotManager();
+  await bot.initialize();
 
-    // Register a simple command using handleCommand
-    botManager.handleCommand('start', async (ctx: CustomContext) => {
-        await ctx.reply('Welcome to the bot! 👋');
-    });
-
-    // Register a secure command (requires jwtSecret in config)
-    botManager.handleCommandWithAuth('secure', async (ctx: CustomContext) => {
-        await ctx.reply('This secure command requires authentication.');
-    });
-
-    // Handle messages: process only messages containing "hello"
-    botManager.handleMessage(
-        (ctx: CustomContext) => (ctx.message?.text || '').toLowerCase().includes('hello'),
-        async (ctx: CustomContext) => {
-            await ctx.reply('Hello! How can I assist you?');
-        }
+  botManager.handleCommand('start', async (ctx: CustomContext) => {
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      'Welcome! You are authenticated with JWT.'
     );
+  });
 
-    // Handle callback queries: process only callbacks with "info" in their data
-    botManager.handleCallback(
-        (ctx: CustomContext) => (ctx.callbackQuery?.data || '').includes('info'),
-        async (ctx: CustomContext) => {
-            await ctx.reply('Callback query info processed.');
-        }
+  botManager.handleCommand('whoami', async (ctx: CustomContext) => {
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      `Your chat ID: <code>${ctx.from.id}</code>`,
+      { parse_mode: 'HTML' }
     );
-
-    await bot.initialize();
+  });
 }
 
-main().catch(console.error);
+createJwtAuthBot().catch(console.error);
 ```
 
-### Authentication Setup Example
+### 2. Bot with Admin Authentication/Approval
 
-#### Full Authentication (Automatic)
-When `useAuth` is set to "fully" in your configuration along with a valid `jwtSecret`, the SDK automatically applies authentication to all routes. In this mode, you can register commands, message handlers, and callback queries using the standard methods (`handleCommand`, `handleMessage`, and `handleCallback`); these routes will be secured automatically.
-
-**Example:**
 ```typescript
-import { Bot, AppConfig } from '@wasserstoff/mangi-tg-bot';
-import { CustomContext } from '@wasserstoff/mangi-tg-bot/bot/context/CustomContext';
+import { Bot, AppConfig, CustomContext, logger } from '@wasserstoff/mangi-tg-bot';
 
-const configWithAuth: AppConfig = {
-    botToken: 'YOUR_BOT_TOKEN',
-    botMode: 'polling',
-    botAllowedUpdates: ['message', 'callback_query'],
-    redisUrl: 'redis://localhost:6379',
-    isDev: true,
-    useAuth: 'fully',
-    jwtSecret: 'your-secret-key'
+const configWithAdminAuth: AppConfig = {
+  botToken: 'YOUR_BOT_TOKEN',
+  botMode: 'polling',
+  botAllowedUpdates: ['message', 'callback_query'],
+  redisUrl: 'redis://localhost:6379',
+  isDev: true,
+  useAuth: 'none',
+  adminAuthentication: true, // Enable admin approval system
+  adminChatIds: [123456789, 987654321], // Replace with your admin Telegram chat IDs
 };
 
-async function createFullyAuthenticatedBot() {
-    const bot = new Bot(configWithAuth);
-    const botManager = bot.getBotManager();
+async function createAdminAuthBot() {
+  logger.info('Starting bot with admin authentication:', configWithAdminAuth);
+  const bot = new Bot(configWithAdminAuth);
+  const botManager = bot.getBotManager();
+  await bot.initialize();
 
-    // Standard methods automatically secured with authentication
-    botManager.handleCommand('start', async (ctx: CustomContext) => {
-        await ctx.reply('Welcome to the fully authenticated bot!');
-    });
-
-    botManager.handleMessage(
-        (ctx: CustomContext) => (ctx.message?.text || '').toLowerCase().includes('secure'),
-        async (ctx: CustomContext) => {
-            await ctx.reply('This message handler is secured via full authentication!');
-        }
+  botManager.handleCommand('start', async (ctx: CustomContext) => {
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      'Welcome! If you see this, you are approved by an admin.'
     );
+  });
 
-    await bot.initialize();
+  botManager.handleCommand('whoami', async (ctx: CustomContext) => {
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      `Your chat ID: <code>${ctx.from.id}</code>`,
+      { parse_mode: 'HTML' }
+    );
+  });
+
+  botManager.handleCommand('secret', async (ctx: CustomContext) => {
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      'This is a secret command only for approved users!'
+    );
+  });
 }
 
-createFullyAuthenticatedBot().catch(console.error);
+createAdminAuthBot().catch(console.error);
 ```
 
-#### Partial Authentication (Selective)
-If you prefer to apply authentication only to specific routes rather than across the entire bot, set `useAuth` to "partially" and use the specialized methods (`handleCommandWithAuth`, `handleMessageWithAuth`, and `handleCallbackWithAuth`) to secure only selected routes.
+### 3. Bot with Session CRUD Operations
 
-**Example:**
 ```typescript
-import { Bot, AppConfig } from '@wasserstoff/mangi-tg-bot';
-import { CustomContext } from '@wasserstoff/mangi-tg-bot/bot/context/CustomContext';
+import { Bot, AppConfig, CustomContext, logger } from '@wasserstoff/mangi-tg-bot';
 
-const configPartialAuth: AppConfig = {
-    botToken: 'YOUR_BOT_TOKEN',
-    botMode: 'polling',
-    botAllowedUpdates: ['message', 'callback_query'],
-    redisUrl: 'redis://localhost:6379',
-    isDev: true,
-    useAuth: 'partially',
-    jwtSecret: 'your-secret-key'
+const configWithSessionCrud: AppConfig = {
+  botToken: 'YOUR_BOT_TOKEN',
+  botMode: 'polling',
+  botAllowedUpdates: ['message', 'callback_query'],
+  redisUrl: 'redis://localhost:6379',
+  isDev: true,
+  useAuth: 'none',
 };
 
-async function createPartiallyAuthenticatedBot() {
-    const bot = new Bot(configPartialAuth);
-    const botManager = bot.getBotManager();
+async function createSessionCrudBot() {
+  logger.info('Starting bot with session CRUD example:', configWithSessionCrud);
+  const bot = new Bot(configWithSessionCrud);
+  const botManager = bot.getBotManager();
+  await bot.initialize();
 
-    // Use specialized methods to secure selected routes
-    botManager.handleCommandWithAuth('secure', async (ctx: CustomContext) => {
-        await ctx.reply('This secure command requires authentication.');
-    });
-
-    botManager.handleMessageWithAuth(
-        (ctx: CustomContext) => (ctx.message?.text || '').toLowerCase().includes('secure'),
-        async (ctx: CustomContext) => {
-            await ctx.reply('This message handler is selectively secured!');
-        }
+  botManager.handleCommand('setvar', async (ctx: CustomContext) => {
+    ctx.session.setCustom('foo', 'bar');
+    const foo = ctx.session.getCustom('foo');
+    ctx.session.updateCustom({ hello: 'world', count: 1 });
+    ctx.session.deleteCustom('count');
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      `Session custom variable 'foo' set to '${foo}'. Updated and deleted 'count'.`
     );
+  });
 
-    await bot.initialize();
+  botManager.handleCommand('getvar', async (ctx: CustomContext) => {
+    const foo = ctx.session.getCustom('foo');
+    await ctx.api.sendMessage(ctx.chat.id, `Current value of 'foo': ${foo}`);
+  });
 }
 
-createPartiallyAuthenticatedBot().catch(console.error);
+createSessionCrudBot().catch(console.error);
+```
+
+### 4. Combined Example: JWT Auth + Admin Auth + Session CRUD
+
+```typescript
+import { Bot, AppConfig, CustomContext, logger } from '@wasserstoff/mangi-tg-bot';
+
+const configCombined: AppConfig = {
+  botToken: 'YOUR_BOT_TOKEN',
+  botMode: 'polling',
+  botAllowedUpdates: ['message', 'callback_query'],
+  redisUrl: 'redis://localhost:6379',
+  isDev: true,
+  useAuth: 'fully', // JWT auth required for all routes
+  jwtSecret: 'your_jwt_secret_here',
+  adminAuthentication: true, // Enable admin approval system
+  adminChatIds: [123456789], // Replace with your admin Telegram chat IDs
+};
+
+async function createCombinedBot() {
+  logger.info(
+    'Starting combined bot with JWT, admin auth, and session CRUD:',
+    configCombined
+  );
+  const bot = new Bot(configCombined);
+  const botManager = bot.getBotManager();
+  await bot.initialize();
+
+  // Set up command menu
+  botManager.setMyCommands([
+    { command: 'start', description: 'Start the bot' },
+    { command: 'whoami', description: 'Get your chat ID' },
+    { command: 'setvar', description: 'Set session variables' },
+  ]);
+
+  // Only accessible if JWT is valid AND user is approved by admin
+  botManager.handleCommand('start', async (ctx: CustomContext) => {
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      'Welcome! You are authenticated and approved by an admin.'
+    );
+  });
+
+  // Session CRUD helpers
+  botManager.handleCommand('setvar', async (ctx: CustomContext) => {
+    ctx.session.setCustom('foo', 'bar');
+    const foo = ctx.session.getCustom('foo');
+    ctx.session.updateCustom({ hello: 'world', count: 1 });
+    ctx.session.deleteCustom('count');
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      `Session custom variable 'foo' set to '${foo}'. Updated and deleted 'count'.`
+    );
+  });
+
+  botManager.handleCommand('getvar', async (ctx: CustomContext) => {
+    const foo = ctx.session.getCustom('foo');
+    await ctx.api.sendMessage(ctx.chat.id, `Current value of 'foo': ${foo}`);
+  });
+
+  // Show user their chat ID (useful for admin setup)
+  botManager.handleCommand('whoami', async (ctx: CustomContext) => {
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      `Your chat ID: <code>${ctx.from.id}</code>`,
+      { parse_mode: 'HTML' }
+    );
+  });
+
+  // Example: Only approved users with valid JWT can access this command
+  botManager.handleCommand('secret', async (ctx: CustomContext) => {
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      'This is a secret command only for authenticated and approved users!'
+    );
+  });
+}
+
+createCombinedBot().catch(console.error);
 ```
 
 ---
@@ -344,55 +426,6 @@ botManager.handleCommand('start', async (ctx: CustomContext) => {
 ```
 
 ---
-
-## 🏗️ Project Structure
-
-```
-├── bot/
-│   ├── features/           # Bot features and command handlers
-│   ├── middlewares/        # Custom middlewares
-│   ├── context/            # Custom context definitions
-│   ├── BotManager.ts       # Main bot management class (updated API)
-│   └── BotClient.ts        # New Telegram Client API for managing sessions
-├── database/               # Database connections (only Redis required)
-├── config.ts               # Configuration management
-└── index.ts                # Main entry point
-```
-
-## 🔧 Environment Variables
-
-Create a `.env` file in the root directory:
-
-```env
-# Bot Configuration
-NODE_ENV=development
-LOG_LEVEL=debug
-BOT_TOKEN=your_bot_token_here
-BOT_USERNAME=your_bot_username
-BOT_MODE=polling
-BOT_ALLOWED_UPDATES=["message","callback_query"]
-
-# Redis Configuration
-REDIS_URL=redis://localhost:6379
-
-# Authentication Configuration
-USE_AUTH=true
-JWT_SECRET=your-secret-key-here
-
-# Optional Webhook Configuration
-# BOT_WEBHOOK_URL=https://your-domain.com/webhook
-# HTTP_SERVER_HOST=0.0.0.0
-# HTTP_SERVER_PORT=3000
-```
-
-## 📦 Docker Support
-
-The package includes Docker and docker-compose configurations for easy deployment:
-
-```bash
-# Start with docker-compose
-docker-compose up -d
-```
 
 ## 📄 License
 

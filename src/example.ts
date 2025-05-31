@@ -113,7 +113,7 @@ async function createSessionCrudBot() {
 // 4. Combined Example: JWT Auth + Admin Auth + Session CRUD
 // ---
 const configCombined: AppConfig = {
-  botToken: "8088569298:AAH9G9COLy47OvcHsy61Q7bWkoJ3H9swxR8", // Replace with your actual token
+  botToken: "YOUR_BOT_TOKEN", // Replace with your actual token
   botMode: "polling",
   botAllowedUpdates: ["message", "callback_query"],
   redisUrl: "redis://localhost:6379",
