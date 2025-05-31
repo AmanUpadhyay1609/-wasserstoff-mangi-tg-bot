@@ -3,14 +3,10 @@ import { RedisAdapter } from "@grammyjs/storage-redis";
 import { sequentialize } from "grammy-middlewares";
 import { createContextConstructor } from "./context/CustomContext";
 import { logger, createSdkLogger } from "../logger";
-import { welcomeFeature } from "./features/welcome";
-import { initial } from "./middlewares/session";
 import sessionMiddleware, { requireSessionAndChat } from "./middlewares/session";
-import { unhandledFeature } from "./features/unhandled";
 import { updateLogger } from "./middlewares/updateLogger";
 import { errorHandler } from "./helper/errorHandler";
 import { AppConfig } from "..";
-import jwt, { JsonWebTokenError } from "jsonwebtoken";
 import { createAuthMiddleware } from "./middlewares/auth";
 import adminAuthMiddleware, { adminAuthCallbackHandler } from "./middlewares/adminAuth";
 
