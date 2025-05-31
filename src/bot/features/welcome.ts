@@ -1,7 +1,6 @@
 import { Composer } from "grammy";
 import { CustomContext } from "../context/CustomContext";
 import { logHandle } from "../helper/logger";
-import { logger } from "../../logger";
 
 const composer = new Composer<CustomContext>();
 
@@ -9,7 +8,9 @@ const feature = composer.chatType("private");
 
 feature.command("start", logHandle("command-start"), async (ctx) => {
   // Log session data for debugging
-  logger.info(`Session data for user ${ctx.from?.id}: ${JSON.stringify(ctx.session)}`);
+  if (ctx.config?.isDev) {
+    ctx.logger.info(`Session data for user ${ctx.from?.id}: ${JSON.stringify(ctx.session)}`);
+  }
   
   // Show token info in response
   let welcomeMessage = "Welcome to the bot!";
@@ -30,7 +31,9 @@ feature.command("start", logHandle("command-start"), async (ctx) => {
 
 // Add a debug command to check session
 feature.command("debug", async (ctx) => {
-  logger.debug(`Debug command - Session: ${JSON.stringify(ctx.session)}`);
+  if (ctx.config?.isDev) {
+    ctx.logger.debug(`Debug command - Session: ${JSON.stringify(ctx.session)}`);
+  }
   const sessionInfo = JSON.stringify(ctx.session, null, 2);
   await ctx.reply(`Your session data:\n\n<pre>${sessionInfo}</pre>`, {
     parse_mode: "HTML"

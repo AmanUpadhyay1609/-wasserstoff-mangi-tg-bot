@@ -198,6 +198,94 @@ botManager.handleCommand('setvar', async (ctx: CustomContext) => {
 
 ---
 
+## 📝 Command Menu Management
+
+The SDK provides a convenient way to set up and manage your bot's command menu using the `setMyCommands` method. This allows you to define a list of commands that will appear in the bot's menu interface.
+
+### **Setting Up Command Menu**
+
+```typescript
+botManager.setMyCommands([
+  { command: 'start', description: 'Start the bot' },
+  { command: 'help', description: 'Show help information' },
+  { command: 'settings', description: 'Configure bot settings' }
+]);
+```
+
+The command menu will be displayed to users when they open the bot's chat interface, making it easier for them to discover and use available commands.
+
+---
+
+## 🔍 Professional Logging System
+
+The SDK includes a professional logging system built with Pino that automatically adapts to your environment:
+
+- In development mode (`isDev: true`), you get detailed, colorized logs
+- In production mode (`isDev: false`), logs are minimized to essential information
+
+### **Logger Features**
+
+- 🎨 **Colorized Output**: Development logs are colorized for better readability
+- ⏰ **Timestamp Information**: Each log includes precise timestamp
+- 🔍 **Debug Mode**: Extensive debugging information in development
+- 🎯 **Production Ready**: Optimized, minimal logging in production
+- 📊 **Log Levels**: Supports multiple log levels (debug, info, warn, error)
+
+### **Using the Logger**
+
+```typescript
+import { createSdkLogger } from '@wasserstoff/mangi-tg-bot';
+
+// Create a logger instance
+const logger = createSdkLogger(config.isDev);
+
+// Usage examples
+logger.info('Bot initialized successfully');
+logger.debug('Processing update:', update);
+logger.warn('Rate limit approaching');
+logger.error('Connection failed:', error);
+```
+
+### **Automatic Context Logging**
+
+The SDK automatically includes logging in the bot context:
+
+```typescript
+botManager.handleCommand('example', async (ctx: CustomContext) => {
+  // Logs are automatically controlled by isDev setting
+  ctx.logger.info('Processing example command');
+  ctx.logger.debug('Session state:', ctx.session);
+  
+  await ctx.reply('Command processed!');
+});
+```
+
+### **Production vs Development Logging**
+
+- **Development Mode** (`isDev: true`):
+  - Detailed debug information
+  - Session state logging
+  - Command processing details
+  - Redis operations logging
+  - Colorized, formatted output
+
+- **Production Mode** (`isDev: false`):
+  - Critical errors only
+  - Important state changes
+  - Minimal operational logs
+  - Optimized for performance
+
+To switch between modes, simply set `isDev` in your configuration:
+
+```typescript
+const config: AppConfig = {
+  // ... other config options ...
+  isDev: process.env.NODE_ENV !== 'production'
+};
+```
+
+---
+
 ## 👥 Admin Authentication/Approval
 
 Add an extra layer of admin approval for new users. This is ideal for public or semi-public bots, clubs, or organizations where you want to control who can use the bot.

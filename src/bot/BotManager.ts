@@ -1,6 +1,6 @@
 import { Bot, Composer, Context } from "grammy";
 import jwt from "jsonwebtoken";
-import { logger } from "../logger";
+import { createSdkLogger } from "../logger";
 import { createBot, IBot } from ".";
 import { AppConfig } from "..";
 import { CustomContext } from "./context/CustomContext";
@@ -11,11 +11,13 @@ export class BotManager {
     private config: AppConfig;
     private composer: Composer<CustomContext>;
     private registeredCommands: Array<{ command: string; description: string }> = [];
+    private sdkLogger: ReturnType<typeof createSdkLogger>;
 
     constructor(botToken: string, redisInstance: any, config: AppConfig) {
         this.bot = createBot(botToken, redisInstance, config);
         this.composer = new Composer<CustomContext>();
         this.config = config;
+        this.sdkLogger = createSdkLogger(config.isDev);
         this.bot.use(this.composer);
     }
 
@@ -25,7 +27,9 @@ export class BotManager {
         message?: string,
         buttons?: Array<Array<{ text: string; callback_data: string }>>
     ): void {
-        logger.info(`Registering command /${command}`);
+        if (this.config.isDev) {
+            this.sdkLogger.info(`Registering command /${command}`);
+        }
         // Only register command once.
         if (!this.registeredCommands.some((cmd) => cmd.command === command)) {
             this.registeredCommands.push({
@@ -38,14 +42,18 @@ export class BotManager {
             try {
                 await handler(ctx);
                 if (message) {
-                await ctx.reply(message, {
-                    parse_mode: "HTML",
-                    reply_markup: buttons ? { inline_keyboard: buttons } : undefined,
-                });
+                    await ctx.reply(message, {
+                        parse_mode: "HTML",
+                        reply_markup: buttons ? { inline_keyboard: buttons } : undefined,
+                    });
                 }
-                logger.info(`Command /${command} executed successfully`);
+                if (this.config.isDev) {
+                    this.sdkLogger.info(`Command /${command} executed successfully`);
+                }
             } catch (error) {
-                logger.error(`Error executing command /${command}:`, error);
+                if (this.config.isDev) {
+                    this.sdkLogger.error(`Error executing command /${command}:`, error);
+                }
                 await ctx.reply("Sorry, there was an error executing this command.");
             }
         });
@@ -55,7 +63,9 @@ export class BotManager {
         try {
             await this.bot.api.setMyCommands(commands);
         } catch (error) {
-            logger.error("Error setting command menu:", error);
+            if (this.config.isDev) {
+                this.sdkLogger.error("Error setting command menu:", error);
+            }
         }
     }
 
@@ -69,7 +79,9 @@ export class BotManager {
                 await handler(ctx);
                 await ctx.answerCallbackQuery();
             } catch (error) {
-                logger.error("Error handling callback query:", error);
+                if (this.config.isDev) {
+                    this.sdkLogger.error("Error handling callback query:", error);
+                }
                 await ctx.answerCallbackQuery({
                     text: "Error processing callback query",
                 });
@@ -86,7 +98,9 @@ export class BotManager {
             try {
                 await handler(ctx);
             } catch (error) {
-                logger.error("Error handling message:", error);
+                if (this.config.isDev) {
+                    this.sdkLogger.error("Error handling message:", error);
+                }
                 await ctx.reply("Sorry, there was an error processing your message.");
             }
         });
@@ -95,30 +109,40 @@ export class BotManager {
     public async start(): Promise<void> {
         try {
             if (this.config.botMode === "webhook") {
-                logger.info("Starting bot in webhook mode...");
+                if (this.config.isDev) {
+                    this.sdkLogger.info("Starting bot in webhook mode...");
+                }
                 await this.bot.init();
                 await this.bot.api.setWebhook(this.config.botWebhookUrl as string, {
                     allowed_updates: this.config.botAllowedUpdates as any,
                 });
             } else if (this.config.botMode === "polling") {
-                logger.info("Starting bot in polling mode...");
+                if (this.config.isDev) {
+                    this.sdkLogger.info("Starting bot in polling mode...");
+                }
                 await new Promise<void>((resolve, reject) => {
                     this.bot
                         .start({
                             allowed_updates: this.config.botAllowedUpdates as any,
                             onStart: ({ username }) => {
-                                logger.info("Bot running...", { username });
+                                if (this.config.isDev) {
+                                    this.sdkLogger.info("Bot running...", { username });
+                                }
                                 resolve();
                             },
                         })
                         .catch((error) => {
-                            logger.error("Error starting bot:", error);
+                            if (this.config.isDev) {
+                                this.sdkLogger.error("Error starting bot:", error);
+                            }
                             reject(error);
                         });
                 });
             }
         } catch (error) {
-            logger.error("Error starting BotManager:", error);
+            if (this.config.isDev) {
+                this.sdkLogger.error("Error starting BotManager:", error);
+            }
             throw error;
         }
     }
@@ -126,9 +150,13 @@ export class BotManager {
     public async stop(): Promise<void> {
         try {
             await this.bot.stop();
-            logger.info("Bot stopped successfully");
+            if (this.config.isDev) {
+                this.sdkLogger.info("Bot stopped successfully");
+            }
         } catch (error) {
-            logger.error("Error stopping bot:", error);
+            if (this.config.isDev) {
+                this.sdkLogger.error("Error stopping bot:", error);
+            }
             throw error;
         }
     }
@@ -144,10 +172,14 @@ export class BotManager {
         buttons?: Array<Array<{ text: string; callback_data: string }>>
     ): void {
         if (!this.config.jwtSecret) {
-            logger.error("JWT secret not configured for authentication. Cannot register auth command.");
+            if (this.config.isDev) {
+                this.sdkLogger.error("JWT secret not configured for authentication. Cannot register auth command.");
+            }
             return;
         }
-        logger.info(`Registering command with auth /${command}`);
+        if (this.config.isDev) {
+            this.sdkLogger.info(`Registering command with auth /${command}`);
+        }
         if (!this.registeredCommands.some(cmd => cmd.command === command)) {
             this.registeredCommands.push({
                 command: command,
@@ -160,14 +192,18 @@ export class BotManager {
             try {
                 await handler(ctx);
                 if (message) {
-                await ctx.reply(message, {
-                    parse_mode: "HTML",
-                    reply_markup: buttons ? { inline_keyboard: buttons } : undefined,
-                });
+                    await ctx.reply(message, {
+                        parse_mode: "HTML",
+                        reply_markup: buttons ? { inline_keyboard: buttons } : undefined,
+                    });
                 }
-                logger.info(`Auth command /${command} executed successfully`);
+                if (this.config.isDev) {
+                    this.sdkLogger.info(`Auth command /${command} executed successfully`);
+                }
             } catch (error) {
-                logger.error(`Error executing auth command /${command}:`, error);
+                if (this.config.isDev) {
+                    this.sdkLogger.error(`Error executing auth command /${command}:`, error);
+                }
                 await ctx.reply("Sorry, there was an error executing this command with auth.");
             }
         });
@@ -178,7 +214,9 @@ export class BotManager {
         handler: (ctx: CustomContext) => Promise<void>
     ): void {
         if (!this.config.jwtSecret) {
-            logger.error("JWT secret not configured for authentication. Cannot register auth callback.");
+            if (this.config.isDev) {
+                this.sdkLogger.error("JWT secret not configured for authentication. Cannot register auth callback.");
+            }
             return;
         }
         const authMiddleware = createAuthMiddleware(this.config.jwtSecret);
@@ -189,7 +227,9 @@ export class BotManager {
                 await handler(ctx);
                 await ctx.answerCallbackQuery();
             } catch (error) {
-                logger.error("Error handling auth callback:", error);
+                if (this.config.isDev) {
+                    this.sdkLogger.error("Error handling auth callback:", error);
+                }
                 await ctx.answerCallbackQuery({ text: "Error processing auth callback" });
             }
         });
@@ -200,7 +240,9 @@ export class BotManager {
         handler: (ctx: CustomContext) => Promise<void>
     ): void {
         if (!this.config.jwtSecret) {
-            logger.error("JWT secret not configured for authentication. Cannot register auth message handler.");
+            if (this.config.isDev) {
+                this.sdkLogger.error("JWT secret not configured for authentication. Cannot register auth message handler.");
+            }
             return;
         }
         const authMiddleware = createAuthMiddleware(this.config.jwtSecret);
@@ -210,7 +252,9 @@ export class BotManager {
             try {
                 await handler(ctx);
             } catch (error) {
-                logger.error("Error handling auth message:", error);
+                if (this.config.isDev) {
+                    this.sdkLogger.error("Error handling auth message:", error);
+                }
                 await ctx.reply("Sorry, there was an error processing your message with auth.");
             }
         });

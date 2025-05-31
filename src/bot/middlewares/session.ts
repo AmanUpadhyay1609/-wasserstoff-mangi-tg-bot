@@ -52,7 +52,7 @@ export default async function sessionMiddleware(ctx: any, next: () => Promise<vo
       this.save(() => {});
     }
   };
-
+  
   if (typeof ctx.session.save !== 'function') {
     ctx.session.save = function(callback: (err?: any) => void) {
       const storage = ctx.__storageAdapter;
@@ -63,8 +63,8 @@ export default async function sessionMiddleware(ctx: any, next: () => Promise<vo
             callback();
           })
           .catch((err: any) => {
-            callback(err);
-          });
+          callback(err);
+        });
       } else {
         // Fallback: just log
         callback();

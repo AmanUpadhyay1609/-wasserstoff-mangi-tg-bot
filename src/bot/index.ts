@@ -2,7 +2,7 @@ import { Bot, session } from "grammy";
 import { RedisAdapter } from "@grammyjs/storage-redis";
 import { sequentialize } from "grammy-middlewares";
 import { createContextConstructor } from "./context/CustomContext";
-import { logger } from "../logger";
+import { logger, createSdkLogger } from "../logger";
 import { welcomeFeature } from "./features/welcome";
 import { initial } from "./middlewares/session";
 import sessionMiddleware, { requireSessionAndChat } from "./middlewares/session";
@@ -19,8 +19,9 @@ export const createBot = (
   redisInstance: any,
   config: AppConfig,
 ) => {
+  const sdkLogger = createSdkLogger(config.isDev);
   const bot = new Bot(BOT_TOKEN, {
-    ContextConstructor: createContextConstructor({ logger }),
+    ContextConstructor: createContextConstructor({ logger: sdkLogger }),
     client: {
       canUseWebhookReply: (method) => method === "sendMessage",
     },
@@ -59,11 +60,15 @@ export const createBot = (
       getSessionKey(ctx) {
         // Ensure we have a valid chat ID
         if (!ctx.chat?.id) {
-          logger.warn("No chat ID available for session key");
+          if (config.isDev) {
+            logger.warn("No chat ID available for session key");
+          }
           return undefined;
         }
         const sessionKey = `bot:${ctx.me.username}:session:${ctx.chat.id}`;
-        logger.debug(`Generated session key: ${sessionKey}`);
+        if (config.isDev) {
+          logger.debug(`Generated session key: ${sessionKey}`);
+        }
         // Store the session key on the context for our middleware
         (ctx as any).__sessionKey = sessionKey;
         return sessionKey;
@@ -83,7 +88,9 @@ export const createBot = (
       // Create a shadow save method that ensures data is written to Redis
       if (sessionKey) {
         (ctx.session as any).forceFlush = async () => {
-          logger.debug(`Force flushing session to Redis with key ${sessionKey}`);
+          if (config.isDev) {
+            logger.debug(`Force flushing session to Redis with key ${sessionKey}`);
+          }
           return storage.write(sessionKey, origSession);
         };
       }
@@ -95,9 +102,13 @@ export const createBot = (
     if (ctx.session && (ctx as any).__sessionKey) {
       try {
         await storage.write((ctx as any).__sessionKey, ctx.session);
-        logger.debug(`Session auto-saved after request with key ${(ctx as any).__sessionKey}`);
+        if (config.isDev) {
+          logger.debug(`Session auto-saved after request with key ${(ctx as any).__sessionKey}`);
+        }
       } catch (err) {
-        logger.error('Error auto-saving session:', err);
+        if (config.isDev) {
+          logger.error('Error auto-saving session:', err);
+        }
       }
     }
   });
@@ -114,9 +125,7 @@ export const createBot = (
   // Add debug middleware to log session data
   if (config.isDev) {
     protectedBot.use(async (ctx, next) => {
-      // logger.debug(`Session before processing: ${JSON.stringify(ctx.session)}`);
       await next();
-      // logger.debug(`Session after processing: ${JSON.stringify(ctx.session)}`);
     });
   }
 
@@ -158,8 +167,6 @@ export const createBot = (
     protectedBot.use(adminAuthCallbackHandler); // Handle approval/deny callbacks first
     protectedBot.use(adminAuthMiddleware);      // Then check user status for all updates
   }
-
-  // To set the bot command menu, use BotManager.setMyCommands(commands) after bot initialization.
 
   return bot;
 };

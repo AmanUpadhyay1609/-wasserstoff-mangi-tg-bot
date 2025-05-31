@@ -90,8 +90,8 @@ const configWithSessionCrud: AppConfig = {
 async function createSessionCrudBot() {
   logger.info("Starting bot with session CRUD example:", configWithSessionCrud);
   const bot = new Bot(configWithSessionCrud);
-  const botManager = bot.getBotManager();
-  await bot.initialize();
+    const botManager = bot.getBotManager();
+    await bot.initialize();
 
   botManager.handleCommand("setvar", async (ctx: CustomContext) => {
     ctx.session.setCustom("foo", "bar");
@@ -113,7 +113,7 @@ async function createSessionCrudBot() {
 // 4. Combined Example: JWT Auth + Admin Auth + Session CRUD
 // ---
 const configCombined: AppConfig = {
-  botToken: "8088569298:..........................", // Replace with your actual token
+  botToken: "8088569298:AAH9G9COLy47OvcHsy61Q7bWkoJ3H9swxR8", // Replace with your actual token
   botMode: "polling",
   botAllowedUpdates: ["message", "callback_query"],
   redisUrl: "redis://localhost:6379",
@@ -121,7 +121,7 @@ const configCombined: AppConfig = {
   useAuth: "fully", // JWT auth required for all routes
   jwtSecret: "aman1211",
   adminAuthentication: true, // Enable admin approval system
-  adminChatIds: [2110210162], // Replace with your admin Telegram chat IDs
+  adminChatIds: [6469050225], // Replace with your admin Telegram chat IDs
 };
 
 async function createCombinedBot() {
