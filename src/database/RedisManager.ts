@@ -1,5 +1,5 @@
 import Redis from "ioredis";
-import { logger, createSdkLogger } from "../logger";
+import { createSdkLogger } from "../logger";
 
 export class RedisManager {
     private static instance: RedisManager;

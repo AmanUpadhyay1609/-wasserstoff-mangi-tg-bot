@@ -1,5 +1,4 @@
-import { Bot, Composer, Context } from "grammy";
-import jwt from "jsonwebtoken";
+import { Bot, Composer } from "grammy";
 import { createSdkLogger } from "../logger";
 import { createBot, IBot } from ".";
 import { AppConfig } from "..";

@@ -1,5 +1,4 @@
 import { pino } from "pino";
-// import { config } from "./config";
 
 // Exported logger for SDK users (always real)
 export const logger = pino({

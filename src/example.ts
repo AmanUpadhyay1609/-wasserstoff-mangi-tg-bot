@@ -1,4 +1,5 @@
-import { Bot, AppConfig, CustomContext, logger } from "./index";
+// import { Bot, AppConfig, CustomContext, logger } from "@wasserstoff/mangi-tg-bot"; //When using the sdk package
+import { Bot, AppConfig, CustomContext, logger } from "./index"; 
 
 // ---
 // 1. JWT Authentication Example
