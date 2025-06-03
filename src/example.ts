@@ -173,11 +173,64 @@ async function createCombinedBot() {
     );
   });
 
+   botManager.handleCallback((ctx)=> ctx.callbackQuery.data === "xyz", async (ctx: CustomContext) => {
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      "This is xyz callback query response!",
+      {
+        reply_markup: {
+          inline_keyboard: [[{ text: "Click me 2", callback_data: "xyz2" }]],
+        },
+        parse_mode: "HTML",
+      }
+    );
+  });
+
+  botManager.handleCallback((ctx)=> ctx.callbackQuery.data === "xyz2", async (ctx: CustomContext) => {
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      "This is xyz2 callback query response!",
+      {
+        reply_markup: {
+          inline_keyboard: [[{ text: "Click me 3", callback_data: "xyz3" }]],
+        },
+        parse_mode: "HTML",
+      }
+    );
+  });
+
+  botManager.handleCallback((ctx)=> ctx.callbackQuery.data === "xyz3", async (ctx: CustomContext) => {
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      "This is xyz3 callback query response!",
+      {
+        reply_markup: {
+          inline_keyboard: [[{ text: "Click me 4", callback_data: "xyz4" }]],
+        },
+        parse_mode: "HTML",
+      }
+    );
+  });
+
   // Example: Only approved users with valid JWT can access this command
   botManager.handleCommand("secret", async (ctx: CustomContext) => {
     await ctx.api.sendMessage(
       ctx.chat.id,
       "This is a secret command only for authenticated and approved users!"
+    );
+  });
+    botManager.handleMessage((ctx)=> ctx.message.text === "xyz2", async (ctx: CustomContext) => {
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      "This is xyz2 message response!",
+      { parse_mode: "HTML",reply_markup: { inline_keyboard: [[{ text: "Click me", callback_data: "xyz" }]] } }
+    );
+  });
+  botManager.handleMessage((ctx)=> ctx.message.text === "xyz", async (ctx: CustomContext) => {
+    await ctx.api.sendMessage(
+      ctx.chat.id,
+      "This is xyz message response!",
+      { parse_mode: "HTML",reply_markup: { inline_keyboard: [[{ text: "Click me", callback_data: "xyz" }]] } }
     );
   });
 }

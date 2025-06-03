@@ -11,6 +11,10 @@ export class BotManager {
     private composer: Composer<CustomContext>;
     private registeredCommands: Array<{ command: string; description: string }> = [];
     private sdkLogger: ReturnType<typeof createSdkLogger>;
+    private messageHandlers: Array<{ filter: (ctx: CustomContext) => boolean, handler: (ctx: CustomContext) => Promise<void> }> = [];
+    private callbackHandlers: Array<{ filter: (ctx: CustomContext) => boolean, handler: (ctx: CustomContext) => Promise<void> }> = [];
+    private messageHandlersWithAuth: Array<{ filter: (ctx: CustomContext) => boolean, handler: (ctx: CustomContext) => Promise<void> }> = [];
+    private callbackHandlersWithAuth: Array<{ filter: (ctx: CustomContext) => boolean, handler: (ctx: CustomContext) => Promise<void> }> = [];
 
     constructor(botToken: string, redisInstance: any, config: AppConfig) {
         this.bot = createBot(botToken, redisInstance, config);
@@ -18,6 +22,107 @@ export class BotManager {
         this.config = config;
         this.sdkLogger = createSdkLogger(config.isDev);
         this.bot.use(this.composer);
+
+        // Register a single message dispatcher (non-auth)
+        this.composer.on("message", async (ctx: CustomContext, next) => {
+            // If this is a command, skip custom message handlers
+            if (ctx.message && ctx.message.text && ctx.message.text.startsWith("/")) {
+                // Let .command() handlers run
+                return await next();
+            }
+            for (const { filter, handler } of this.messageHandlers) {
+                if (filter(ctx)) {
+                    if (this.config.isDev) {
+                        this.sdkLogger.info(`Message handler matched and executed`);
+                    }
+                    try {
+                        await handler(ctx);
+                    } catch (error) {
+                        if (this.config.isDev) {
+                            this.sdkLogger.error("Error handling message:", error);
+                        }
+                        await ctx.reply("Sorry, there was an error processing your message.");
+                    }
+                    return; // Only the first matching handler runs
+                }
+            }
+            await next();
+        });
+
+        // Register a single callback dispatcher (non-auth)
+        this.composer.on("callback_query", async (ctx: CustomContext, next) => {
+            for (const { filter, handler } of this.callbackHandlers) {
+                if (filter(ctx)) {
+                    if (this.config.isDev) {
+                        this.sdkLogger.info(`Callback handler matched and executed`);
+                    }
+                    try {
+                        await handler(ctx);
+                        await ctx.answerCallbackQuery();
+                    } catch (error) {
+                        if (this.config.isDev) {
+                            this.sdkLogger.error("Error handling callback query:", error);
+                        }
+                        await ctx.answerCallbackQuery({
+                            text: "Error processing callback query",
+                        });
+                    }
+                    return; // Only the first matching handler runs
+                }
+            }
+            await next();
+        });
+
+        // Register a single message dispatcher (auth)
+        this.composer.on("message", async (ctx: CustomContext, next) => {
+            if (!this.config.jwtSecret) return await next();
+            // If this is a command, skip custom message handlers
+            if (ctx.message && ctx.message.text && ctx.message.text.startsWith("/")) {
+                return await next();
+            }
+            const authMiddleware = createAuthMiddleware(this.config.jwtSecret);
+            for (const { filter, handler } of this.messageHandlersWithAuth) {
+                if (filter(ctx)) {
+                    if (this.config.isDev) {
+                        this.sdkLogger.info(`Auth message handler matched and executed`);
+                    }
+                    try {
+                        await authMiddleware(ctx, async () => handler(ctx));
+                    } catch (error) {
+                        if (this.config.isDev) {
+                            this.sdkLogger.error("Error handling auth message:", error);
+                        }
+                        await ctx.reply("Sorry, there was an error processing your message with auth.");
+                    }
+                    return;
+                }
+            }
+            await next();
+        });
+
+        // Register a single callback dispatcher (auth)
+        this.composer.on("callback_query", async (ctx: CustomContext, next) => {
+            if (!this.config.jwtSecret) return await next();
+            const authMiddleware = createAuthMiddleware(this.config.jwtSecret);
+            for (const { filter, handler } of this.callbackHandlersWithAuth) {
+                if (filter(ctx)) {
+                    if (this.config.isDev) {
+                        this.sdkLogger.info(`Auth callback handler matched and executed`);
+                    }
+                    try {
+                        await authMiddleware(ctx, async () => handler(ctx));
+                        await ctx.answerCallbackQuery();
+                    } catch (error) {
+                        if (this.config.isDev) {
+                            this.sdkLogger.error("Error handling auth callback:", error);
+                        }
+                        await ctx.answerCallbackQuery({ text: "Error processing auth callback" });
+                    }
+                    return;
+                }
+            }
+            await next();
+        });
     }
 
     public handleCommand(
@@ -72,37 +177,20 @@ export class BotManager {
         filter: (ctx: CustomContext) => boolean,
         handler: (ctx: CustomContext) => Promise<void>
     ): void {
-        this.composer.callbackQuery(/.*/, async (ctx: CustomContext) => {
-            if (!filter(ctx)) return;
-            try {
-                await handler(ctx);
-                await ctx.answerCallbackQuery();
-            } catch (error) {
-                if (this.config.isDev) {
-                    this.sdkLogger.error("Error handling callback query:", error);
-                }
-                await ctx.answerCallbackQuery({
-                    text: "Error processing callback query",
-                });
-            }
-        });
+        if (this.config.isDev) {
+            this.sdkLogger.info(`Registering callback handler`);
+        }
+        this.callbackHandlers.push({ filter, handler });
     }
 
     public handleMessage(
         filter: (ctx: CustomContext) => boolean,
         handler: (ctx: CustomContext) => Promise<void>
     ): void {
-        this.composer.hears(/.*/, async (ctx: CustomContext) => {
-            if (!filter(ctx)) return;
-            try {
-                await handler(ctx);
-            } catch (error) {
-                if (this.config.isDev) {
-                    this.sdkLogger.error("Error handling message:", error);
-                }
-                await ctx.reply("Sorry, there was an error processing your message.");
-            }
-        });
+        if (this.config.isDev) {
+            this.sdkLogger.info(`Registering message handler`);
+        }
+        this.messageHandlers.push({ filter, handler });
     }
 
     public async start(): Promise<void> {
@@ -218,20 +306,10 @@ export class BotManager {
             }
             return;
         }
-        const authMiddleware = createAuthMiddleware(this.config.jwtSecret);
-        this.composer.callbackQuery(/.*/, async (ctx: CustomContext) => {
-            if (!filter(ctx)) return;
-            await authMiddleware(ctx, async () => Promise.resolve());
-            try {
-                await handler(ctx);
-                await ctx.answerCallbackQuery();
-            } catch (error) {
-                if (this.config.isDev) {
-                    this.sdkLogger.error("Error handling auth callback:", error);
-                }
-                await ctx.answerCallbackQuery({ text: "Error processing auth callback" });
-            }
-        });
+        if (this.config.isDev) {
+            this.sdkLogger.info(`Registering auth callback handler`);
+        }
+        this.callbackHandlersWithAuth.push({ filter, handler });
     }
 
     public handleMessageWithAuth(
@@ -244,18 +322,9 @@ export class BotManager {
             }
             return;
         }
-        const authMiddleware = createAuthMiddleware(this.config.jwtSecret);
-        this.composer.hears(/.*/, async (ctx: CustomContext) => {
-            if (!filter(ctx)) return;
-            await authMiddleware(ctx, async () => Promise.resolve());
-            try {
-                await handler(ctx);
-            } catch (error) {
-                if (this.config.isDev) {
-                    this.sdkLogger.error("Error handling auth message:", error);
-                }
-                await ctx.reply("Sorry, there was an error processing your message with auth.");
-            }
-        });
+        if (this.config.isDev) {
+            this.sdkLogger.info(`Registering auth message handler`);
+        }
+        this.messageHandlersWithAuth.push({ filter, handler });
     }
 } 
