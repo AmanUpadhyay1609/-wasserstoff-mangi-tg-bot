@@ -9,7 +9,7 @@ const configWithJwtAuth: AppConfig = {
   botToken: "YOUR_BOT_TOKEN", // Replace with your actual token
   botMode: "polling",
   botAllowedUpdates: ["message", "callback_query"],
-  redisUrl: "redis://localhost:6379",
+  redisUrl: "YOUR_REDIS_URL",
   isDev: true,
   useAuth: "fully", // All routes require JWT authentication
   jwtSecret: "your_jwt_secret_here",
@@ -43,7 +43,7 @@ const configWithAdminAuth: AppConfig = {
   botToken: "YOUR_BOT_TOKEN", // Replace with your actual token
   botMode: "polling",
   botAllowedUpdates: ["message", "callback_query"],
-  redisUrl: "redis://localhost:6379",
+  redisUrl: "YOUR_REDIS_URL",
   isDev: true,
   useAuth: "none",
   adminAuthentication: true, // Enable admin approval system
@@ -84,7 +84,7 @@ const configWithSessionCrud: AppConfig = {
   botToken: "YOUR_BOT_SESSION", // Replace with your actual token
   botMode: "polling",
   botAllowedUpdates: ["message", "callback_query"],
-  redisUrl: "redis://localhost:6379",
+  redisUrl: "YOUR_REDIS_URL",
   isDev: true,
   useAuth: "none",
 };

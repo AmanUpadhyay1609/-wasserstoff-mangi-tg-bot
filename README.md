@@ -46,7 +46,7 @@ const configWithJwtAuth: AppConfig = {
   botToken: 'YOUR_BOT_TOKEN',
   botMode: 'polling',
   botAllowedUpdates: ['message', 'callback_query'],
-  redisUrl: 'redis://localhost:6379',
+  redisUrl: 'YOUR_REDIS_URL',
   isDev: true,
   useAuth: 'fully', // All routes require JWT authentication
   jwtSecret: 'your_jwt_secret_here',
@@ -55,8 +55,8 @@ const configWithJwtAuth: AppConfig = {
 async function createJwtAuthBot() {
   logger.info('Starting bot with JWT authentication:', configWithJwtAuth);
   const bot = new Bot(configWithJwtAuth);
-  const botManager = bot.getBotManager();
   await bot.initialize();
+  const botManager = bot.getBotManager();
 
   botManager.handleCommand('start', async (ctx: CustomContext) => {
     await ctx.api.sendMessage(
@@ -86,7 +86,7 @@ const configWithAdminAuth: AppConfig = {
   botToken: 'YOUR_BOT_TOKEN',
   botMode: 'polling',
   botAllowedUpdates: ['message', 'callback_query'],
-  redisUrl: 'redis://localhost:6379',
+  redisUrl: 'YOUR_REDIS_URL',
   isDev: true,
   useAuth: 'none',
   adminAuthentication: true, // Enable admin approval system
@@ -96,8 +96,8 @@ const configWithAdminAuth: AppConfig = {
 async function createAdminAuthBot() {
   logger.info('Starting bot with admin authentication:', configWithAdminAuth);
   const bot = new Bot(configWithAdminAuth);
-  const botManager = bot.getBotManager();
   await bot.initialize();
+  const botManager = bot.getBotManager();
 
   botManager.handleCommand('start', async (ctx: CustomContext) => {
     await ctx.api.sendMessage(
@@ -134,7 +134,7 @@ const configWithSessionCrud: AppConfig = {
   botToken: 'YOUR_BOT_TOKEN',
   botMode: 'polling',
   botAllowedUpdates: ['message', 'callback_query'],
-  redisUrl: 'redis://localhost:6379',
+  redisUrl: 'YOUR_REDIS_URL',
   isDev: true,
   useAuth: 'none',
 };
@@ -142,8 +142,8 @@ const configWithSessionCrud: AppConfig = {
 async function createSessionCrudBot() {
   logger.info('Starting bot with session CRUD example:', configWithSessionCrud);
   const bot = new Bot(configWithSessionCrud);
-  const botManager = bot.getBotManager();
   await bot.initialize();
+  const botManager = bot.getBotManager();
 
   botManager.handleCommand('setvar', async (ctx: CustomContext) => {
     ctx.session.setCustom('foo', 'bar');
@@ -174,7 +174,7 @@ const configCombined: AppConfig = {
   botToken: 'YOUR_BOT_TOKEN',
   botMode: 'polling',
   botAllowedUpdates: ['message', 'callback_query'],
-  redisUrl: 'redis://localhost:6379',
+  redisUrl: 'YOUR_REDIS_URL',
   isDev: true,
   useAuth: 'fully', // JWT auth required for all routes
   jwtSecret: 'your_jwt_secret_here',
@@ -188,8 +188,8 @@ async function createCombinedBot() {
     configCombined
   );
   const bot = new Bot(configCombined);
-  const botManager = bot.getBotManager();
   await bot.initialize();
+  const botManager = bot.getBotManager();
 
   // Set up command menu
   botManager.setMyCommands([
@@ -388,7 +388,7 @@ const configWithAdminAuth: AppConfig = {
   botToken: 'YOUR_BOT_TOKEN',
   botMode: 'polling',
   botAllowedUpdates: ['message', 'callback_query'],
-  redisUrl: 'redis://localhost:6379',
+  redisUrl: 'YOUR_REDIS_URL',
   isDev: true,
   useAuth: 'none',
   adminAuthentication: true,
