@@ -32,25 +32,37 @@ export default async function sessionMiddleware(ctx: any, next: () => Promise<vo
 
   // CRUD helpers for session.custom
   ctx.session.setCustom = function(key: string, value: any) {
+    if (!this.custom) this.custom = {};
     this.custom[key] = value;
     if (typeof this.save === 'function') {
       this.save(() => {});
     }
+    return true;
   };
   ctx.session.getCustom = function(key: string) {
+    if (!this.custom || !(key in this.custom)) {
+      return undefined;
+    }
     return this.custom[key];
   };
   ctx.session.updateCustom = function(updates: Record<string, any>) {
+    if (!this.custom) this.custom = {};
+    if (typeof updates !== 'object' || updates === null) return false;
     this.custom = { ...this.custom, ...updates };
     if (typeof this.save === 'function') {
       this.save(() => {});
     }
+    return true;
   };
   ctx.session.deleteCustom = function(key: string) {
+    if (!this.custom || !(key in this.custom)) {
+      return false;
+    }
     delete this.custom[key];
     if (typeof this.save === 'function') {
       this.save(() => {});
     }
+    return true;
   };
   
   if (typeof ctx.session.save !== 'function') {
@@ -85,4 +97,4 @@ export const requireSessionAndChat: Middleware<CustomContext> = async (ctx, next
   if (!ctx.from) throw new Error("From is not available!");
   await next();
 };
-  
+

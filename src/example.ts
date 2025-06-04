@@ -80,7 +80,7 @@ async function createAdminAuthBot() {
 // 3. Session CRUD Operations Example
 // ---
 const configWithSessionCrud: AppConfig = {
-  botToken: "YOUR_BOT_TOKEN", // Replace with your actual token
+  botToken: "YOUR_BOT_SESSION", // Replace with your actual token
   botMode: "polling",
   botAllowedUpdates: ["message", "callback_query"],
   redisUrl: "redis://localhost:6379",
@@ -95,13 +95,27 @@ async function createSessionCrudBot() {
     await bot.initialize();
 
   botManager.handleCommand("setvar", async (ctx: CustomContext) => {
-    ctx.session.setCustom("foo", "bar");
+    // Demonstrate setCustom
+    const setResult = ctx.session.setCustom("foo", "bar");
+    // Demonstrate getCustom (should return 'bar')
     const foo = ctx.session.getCustom("foo");
-    ctx.session.updateCustom({ hello: "world", count: 1 });
-    ctx.session.deleteCustom("count");
+    // Demonstrate updateCustom
+    const updateResult = ctx.session.updateCustom({ hello: "world", count: 1 });
+    // Demonstrate deleteCustom (should return true)
+    const deleteResult = ctx.session.deleteCustom("count");
+    // Demonstrate deleteCustom for non-existent key (should return false)
+    const deleteMissing = ctx.session.deleteCustom("notfound");
+    // Demonstrate getCustom for non-existent key (should return undefined)
+    const missing = ctx.session.getCustom("notfound");
     await ctx.api.sendMessage(
       ctx.chat.id,
-      `Session custom variable 'foo' set to '${foo}'. Updated and deleted 'count'.`
+      `Session custom variable 'foo' set: ${setResult}\n
+      Value of 'foo': ${foo}\n
+      Update result: ${updateResult}\n
+      Delete 'count' result: ${deleteResult}\n
+      Delete 'notfound' result: ${deleteMissing}\n
+      Get 'notfound': ${missing}`,
+      { parse_mode: "HTML" }
     );
   });
   botManager.handleCommand("getvar", async (ctx: CustomContext) => {
@@ -150,13 +164,26 @@ async function createCombinedBot() {
 
   // Session CRUD helpers
   botManager.handleCommand("setvar", async (ctx: CustomContext) => {
-    ctx.session.setCustom("foo", "bar");
+    // Demonstrate setCustom
+    const setResult = ctx.session.setCustom("foo", "bar");
+    // Demonstrate getCustom (should return 'bar')
     const foo = ctx.session.getCustom("foo");
-    ctx.session.updateCustom({ hello: "world", count: 1 });
-    ctx.session.deleteCustom("count");
+    // Demonstrate updateCustom
+    const updateResult = ctx.session.updateCustom({ hello: "world", count: 1 });
+    // Demonstrate deleteCustom (should return true)
+    const deleteResult = ctx.session.deleteCustom("count");
+    // Demonstrate deleteCustom for non-existent key (should return false)
+    const deleteMissing = ctx.session.deleteCustom("notfound");
+    // Demonstrate getCustom for non-existent key (should return undefined)
+    const missing = ctx.session.getCustom("notfound");
     await ctx.api.sendMessage(
       ctx.chat.id,
-      `Session custom variable 'foo' set to '${foo}'. Updated and deleted 'count'.`
+      `Session custom variable 'foo' set: ${setResult}\n` +
+      `Value of 'foo': ${foo}\n` +
+      `Update result: ${updateResult}\n` +
+      `Delete 'count' result: ${deleteResult}\n` +
+      `Delete 'notfound' result: ${deleteMissing}\n` +
+      `Get 'notfound': ${missing}`
     );
   });
   botManager.handleCommand("getvar", async (ctx: CustomContext) => {
@@ -242,5 +269,5 @@ async function createCombinedBot() {
 
 // createJwtAuthBot();
 // createAdminAuthBot();
-// createSessionCrudBot();
-createCombinedBot();
+createSessionCrudBot();
+// createCombinedBot();
