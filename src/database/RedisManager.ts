@@ -3,12 +3,11 @@ import { createSdkLogger } from "../logger";
 
 export class RedisManager {
     private static instance: RedisManager;
-    private redisClient: Redis;
+    private redisClient?: Redis;
     private sdkLogger: ReturnType<typeof createSdkLogger>;
     private isDev: boolean;
 
     private constructor(isDev: boolean = false) {
-        this.redisClient = new Redis();
         this.isDev = isDev;
         this.sdkLogger = createSdkLogger(isDev);
     }
@@ -54,9 +53,11 @@ export class RedisManager {
 
     public async disconnect(): Promise<void> {
         try {
-            await this.redisClient.quit();
-            if (this.isDev) {
-                this.sdkLogger.info("Redis disconnected successfully");
+            if (this.redisClient) {
+                await this.redisClient.quit();
+                if (this.isDev) {
+                    this.sdkLogger.info("Redis disconnected successfully");
+                }
             }
         } catch (error) {
             if (this.isDev) {
@@ -67,6 +68,9 @@ export class RedisManager {
     }
 
     public getClient(): Redis {
+        if (!this.redisClient) {
+            throw new Error("Redis client not initialized. Call connect(uri) first.");
+        }
         return this.redisClient;
     }
 } 

@@ -21,18 +21,13 @@ export interface AppConfig {
 }
 
 export class Bot {
-  private botManager: BotManager;
+  private botManager?: BotManager;
   private redisManager: RedisManager;
   private config: AppConfig;
 
   constructor(config: AppConfig) {
     this.config = config;
     this.redisManager = RedisManager.getInstance();
-    this.botManager = new BotManager(
-      config.botToken,
-      this.redisManager.getClient(),
-      config
-    );
   }
 
   /**
@@ -40,8 +35,14 @@ export class Bot {
    */
   public async initialize(): Promise<void> {
     try {
-      // Connect to Redis
+      // Connect to Redis first
       await this.redisManager.connect(this.config.redisUrl);
+      // Now create BotManager with the connected Redis client
+      this.botManager = new BotManager(
+        this.config.botToken,
+        this.redisManager.getClient(),
+        this.config
+      );
       // Start bot
       await this.botManager.start();
       // Setup graceful shutdown
@@ -65,7 +66,7 @@ export class Bot {
       logger.info("Initiating graceful shutdown...");
       try {
         // Stop bot
-        await this.botManager.stop();
+        await this.botManager?.stop();
         // Disconnect from Redis
         await this.redisManager.disconnect();
         logger.info("Shutdown completed successfully");
@@ -89,7 +90,7 @@ export class Bot {
   public async cleanup(): Promise<void> {
     try {
       // Stop bot
-      await this.botManager.stop();
+      await this.botManager?.stop();
       // Disconnect from Redis
       await this.redisManager.disconnect();
       logger.info("Bot cleanup completed successfully");
@@ -103,6 +104,9 @@ export class Bot {
    * Get the bot manager instance
    */
   public getBotManager() {
+    if (!this.botManager) {
+      throw new Error("BotManager not initialized. Call initialize() first.");
+    }
     return this.botManager;
   }
 }
