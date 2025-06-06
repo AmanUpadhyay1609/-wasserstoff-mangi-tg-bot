@@ -262,24 +262,26 @@ The SDK provides easy CRUD helpers for managing session variables in `ctx.sessio
 
 ```typescript
 botManager.handleCommand('setvar', async (ctx: CustomContext) => {
-  // Set a variable
+  // Set a simple variable
   ctx.session.setCustom('foo', 'bar');
+  // Set a nested variable
+  ctx.session.setCustom('profile.name', 'Alice');
   // Get a variable
   const foo = ctx.session.getCustom('foo');
-  // Update multiple variables
-  ctx.session.updateCustom({ hello: 'world', count: 1 });
+  const name = ctx.session.getCustom('profile.name');
+  // Update multiple variables (including nested)
+  ctx.session.updateCustom({ 'hello': 'world', 'profile.age': 30 });
   // Delete a variable
-  ctx.session.deleteCustom('count');
+  ctx.session.deleteCustom('profile.name');
   // Save session if available (optional)
   if (typeof ctx.session.save === 'function') {
     ctx.session.save(() => {});
   }
-  await ctx.reply(`Session custom variable 'foo' set to '${foo}'. Updated and deleted 'count'.`);
+  await ctx.reply(`Session custom variable 'foo' set to '${foo}', name: '${name}'. Updated and deleted 'profile.name'.`);
 });
 ```
 
 ---
-
 ## 📝 Command Menu Management
 
 The SDK provides a convenient way to set up and manage your bot's command menu using the `setMyCommands` method. This allows you to define a list of commands that will appear in the bot's menu interface.

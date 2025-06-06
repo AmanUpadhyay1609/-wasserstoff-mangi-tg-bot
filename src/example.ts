@@ -166,11 +166,13 @@ async function createCombinedBot() {
   // Session CRUD helpers
   botManager.handleCommand("setvar", async (ctx: CustomContext) => {
     // Demonstrate setCustom
+    const chain = "level2"
     const setResult = ctx.session.setCustom("foo", "bar");
+    const setResult1 = ctx.session.setCustom(`level1.${chain}.level3`, "60 rs");
     // Demonstrate getCustom (should return 'bar')
     const foo = ctx.session.getCustom("foo");
     // Demonstrate updateCustom
-    const updateResult = ctx.session.updateCustom({ hello: "world", count: 1 });
+    const updateResult = ctx.session.updateCustom({ hello: "i am helo world"  });
     // Demonstrate deleteCustom (should return true)
     const deleteResult = ctx.session.deleteCustom("count");
     // Demonstrate deleteCustom for non-existent key (should return false)
@@ -180,6 +182,7 @@ async function createCombinedBot() {
     await ctx.api.sendMessage(
       ctx.chat.id,
       `Session custom variable 'foo' set: ${setResult}\n` +
+      `'2nd' set: ${setResult1}\n` +
       `Value of 'foo': ${foo}\n` +
       `Update result: ${updateResult}\n` +
       `Delete 'count' result: ${deleteResult}\n` +
