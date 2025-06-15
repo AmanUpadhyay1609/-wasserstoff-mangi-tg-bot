@@ -1,6 +1,6 @@
 {
   "name": "@wasserstoff/mangi-tg-bot",
-  "version": "1.2.12",
+  "version": "1.2.13",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -31,7 +31,7 @@
     "type": "git",
     "url": "git+https://github.com/AmanUpadhyay1609/-wasserstoff-mangi-tg-bot.git"
   },
-  "homepage": "https://github.com/AmanUpadhyay1609/-wasserstoff-mangi-tg-bot#readme",
+  "homepage": "https://mangi-bot-docs.vercel.app",
   "bugs": {
     "url": "https://github.com/AmanUpadhyay1609/-wasserstoff-mangi-tg-bot/issues"
   },
